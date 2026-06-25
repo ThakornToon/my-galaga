@@ -348,25 +348,37 @@ public class GamePanel extends Canvas {
         String[] pups = {"2X=Double Shot","SP=Spread Shot","RF=Rapid Fire","SH=Shield","SC=Score ×2"};
         Color[] pc = {new Color(100,255,100), new Color(100,200,255),
                       new Color(255,150,50),  new Color(255,220,0), new Color(255,100,255)};
-        int[] pupX = {32, 142, 272, 390, 500};
+        int[] pupCX = {60, 180, 300, 420, 540};  // center x of each item
+        int boxW = 96, boxH = 24, py = 534;
         for (int i = 0; i < 5; i++) {
-            int px = pupX[i], py = 530;
-            g2.setColor(pc[i]);
-            g2.fillRoundRect(px, py - 13, 36, 17, 5, 5);
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Monospaced", Font.BOLD, 10));
-            fm = g2.getFontMetrics();
+            int cx = pupCX[i];
+            Color col = pc[i];
             String key = pups[i].split("=")[0];
-            g2.drawString(key, px + 18 - fm.stringWidth(key)/2, py);
-            g2.setColor(new Color(150, 150, 200));
-            g2.setFont(new Font("Monospaced", Font.PLAIN, 9));
-            fm = g2.getFontMetrics();
             String lbl = pups[i].split("=")[1];
-            g2.drawString(lbl, px + 18 - fm.stringWidth(lbl)/2, py + 14);
+            // Glow (matches PowerUp.draw style)
+            g2.setColor(new Color(col.getRed(), col.getGreen(), col.getBlue(), 50));
+            g2.fillOval(cx - boxW/2 - 5, py - boxH/2 - 5, boxW + 10, boxH + 10);
+            // Fill darker (matches PowerUp.draw)
+            g2.setColor(col.darker());
+            g2.fillRoundRect(cx - boxW/2, py - boxH/2, boxW, boxH, 6, 6);
+            // Border
+            g2.setColor(col);
+            g2.setStroke(new BasicStroke(2f));
+            g2.drawRoundRect(cx - boxW/2, py - boxH/2, boxW, boxH, 6, 6);
+            // Key label inside box
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Monospaced", Font.BOLD, 13));
+            fm = g2.getFontMetrics();
+            g2.drawString(key, cx - fm.stringWidth(key)/2, py + fm.getAscent()/2 - 2);
+            // Description below box
+            g2.setColor(col);
+            g2.setFont(new Font("Monospaced", Font.BOLD, 11));
+            fm = g2.getFontMetrics();
+            g2.drawString(lbl, cx - fm.stringWidth(lbl)/2, py + boxH/2 + 16);
         }
 
         // ── Footer ────────────────────────────────────────────────────────────
-        drawMenuSep(g2, 556);
+        drawMenuSep(g2, 572);
         g2.setColor(new Color(55, 55, 95));
         g2.setFont(new Font("Monospaced", Font.PLAIN, 10));
         fm = g2.getFontMetrics();

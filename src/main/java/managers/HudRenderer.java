@@ -48,7 +48,11 @@ public class HudRenderer {
             int buffY = 72;
 
             if (p.getPowerUp() != Player.PowerUpState.NONE) {
-                Color col = new Color(100, 255, 100);
+                Color col = switch (p.getPowerUp()) {
+                    case DOUBLE -> new Color(100, 255, 100);
+                    case SPREAD -> new Color(100, 200, 255);
+                    default     -> Color.WHITE;
+                };
                 String label = switch (p.getPowerUp()) {
                     case DOUBLE -> "⬡ DOUBLE";
                     case SPREAD -> "⬡ SPREAD";
@@ -66,7 +70,7 @@ public class HudRenderer {
             }
 
             if (p.isRapid()) {
-                Color col = new Color(80, 220, 255);
+                Color col = new Color(255, 150, 50);
                 g2.setColor(col);
                 g2.drawString("⬡ RAPID", 12, buffY);
                 drawBuffBar(g2, Math.max(0, p.getRapidTimer() / Player.RAPID_DURATION), col, 12, buffY + 4, 120);
@@ -83,7 +87,7 @@ public class HudRenderer {
             }
 
             if (world.scoreMultiplier > 1) {
-                Color col = new Color(255, 160, 60);
+                Color col = new Color(255, 100, 255);
                 g2.setColor(col);
                 g2.drawString("⬡ x" + world.scoreMultiplier + " SCORE", 12, buffY);
                 drawBuffBar(g2, Math.max(0, p.getScoreMultTimer() / Player.SCORE_MULT_DURATION), col, 12, buffY + 4, 120);
