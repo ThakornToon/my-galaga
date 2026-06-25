@@ -96,7 +96,7 @@ public class CollisionManager implements Updatable {
                 if (!p.isAlive()) continue;
                 if (e.getBounds().intersects(p.getBounds())) {
                     world.score += e.getScoreValue() / 2;
-                    world.kills++;
+                    world.onEnemyKilled();
                     world.spawnExplosion(e.getX(), e.getY(), e.getColorPrimary());
                     e.destroy();
                     p.absorbHit();
@@ -111,7 +111,7 @@ public class CollisionManager implements Updatable {
             for (DualFighter df : duals) {
                 if (!df.isAlive()) continue;
                 if (e.getBounds().intersects(df.getBounds())) {
-                    world.kills++;
+                    world.onEnemyKilled();
                     world.spawnExplosion(e.getX(), e.getY(), e.getColorPrimary());
                     e.destroy();
                     df.absorbHit();

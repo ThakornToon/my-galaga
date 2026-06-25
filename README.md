@@ -832,9 +832,10 @@ Shoot cooldown: max(0.5, initial - wave × 0.04) — ลดต่อ wave
 - offset: -50px (ซ้าย) หรือ +50px (ขวา) จาก Player
 - สูงสุด 2 ลำ (1 ซ้าย + 1 ขวา)
 - **HP = 2** — ต้องโดนตี 2 ครั้งถึงจะถูกทำลาย (มี HP pips แสดงใต้ cockpit)
+- **Damage color:** HP เต็ม = สีเขียว (`#64FF78`); HP เหลือ 1 = สีแดง (`#FF5050`) — body, wing, cockpit, engine glow และ HP pip เปลี่ยนสีพร้อมกัน; explosion ตอนตายก็ใช้สีตาม HP ขณะนั้น
 - ยิงพร้อม Player ทุกนัด: pattern เดียวกับ power-up ปัจจุบันของ Player (`tryShoot` ถูกเรียกตอน Player ยิง ไม่มี cooldown แยกของตัวเอง — Player คุม rate อยู่แล้ว)
 - **Shield:** เมื่อ Player เก็บ SHIELD power-up จะแชร์โล่ให้ DualFighter ทุกลำ (`applyShield(15s)`) โล่กัน 1 hit ก่อนค่อยลด HP (DualFighter ไม่ stack)
-- ถูกกระสุน/ชนศัตรู → `absorbHit()`: เช็คโล่ → ลด HP → ถ้า HP ≤ 0 จึงหาย + `spawnExplosion(cyan)` (Player ยังอยู่)
+- ถูกกระสุน/ชนศัตรู → `absorbHit()`: เช็คโล่ → ลด HP → ถ้า HP ≤ 0 จึงหาย + `spawnExplosion(สีตาม HP)` (Player ยังอยู่)
 - **ไม่** เคลื่อนที่อิสระ — ตำแหน่งถูก sync จาก Player ทุก frame; `update()` แค่ลด shield timer
 - HUD: `✦ WINGMAN x{n}`
 
@@ -851,6 +852,13 @@ Shoot cooldown: max(0.5, initial - wave × 0.04) — ลดต่อ wave
 - `absorbHit()` เช็ค `shieldTimers` ก่อน lives — ถ้ามีโล่: ดึงโล่ที่เวลาน้อยสุดออก 1 ชั้น, ยกเลิก hit
 - ป้องกันได้ทั้งกระสุน, ชน enemy body, ชน DiveBug EnergyWave
 - HUD: `⬡ SHIELD` (ชั้นเดียว) หรือ `⬡ SHIELD x2` (หลายชั้น) พร้อม countdown bar ของโล่ที่จะหมดก่อน
+
+### Kill Progress (Bonus Life)
+
+- `world.killProgress` นับศัตรูที่กำจัดได้ (ยิงตาย + ชนตาย) เทียบกับ `KILLS_PER_LIFE = 100`
+- ทุก 100 ตัว: `killProgress` รีเซ็ตเป็น 0 → `player.gainLife()` (+1 ชีวิต)
+- HUD: `♥ +1  xx/100` พร้อม bar สีชมพู แสดงอยู่ระหว่าง LIVES กับ buff rows เสมอ
+- `world.kills` (ตัวนับรวม Game Over) ยังคงนับต่อเนื่องแยกกัน
 
 ### Score Multiplier
 
@@ -950,11 +958,23 @@ count per dive = 1 + rng.nextInt(min(2, candidates.size()))
 | SCORE: xxx | (12, 28) | Monospaced Bold 20 |
 | WAVE n | กลางจอ x, y=24 | Monospaced Bold 16 |
 | LIVES: ♥♥♥ | (12, 52) | Monospaced Bold 14 |
-| Power-up label | (12, 72) | Monospaced Bold 14 |
-| ✦ WINGMAN x{n} | (12, 90) | Monospaced Bold 13 |
-| ◎ SPECIAL x{n} [SHIFT] | (12, 110) | Monospaced Bold 14 |
+| ♥ +1 xx/100 + bar | (12, 66/71) | Monospaced Bold 12 |
+| Buff label + bar (dynamic) | (12, 92+) | Monospaced Bold 14 |
+| ✦ WINGMAN x{n} | dynamic (ต่อจาก buffs) | Monospaced Bold 13 |
+| ◎ SPECIAL x{n} [SHIFT] | dynamic (ต่อจาก wingman) | Monospaced Bold 14 |
 | ENEMIES: n | (W-120, 28) | Monospaced Plain 12 |
 | FPS:xx | (W-52, H-6) | Monospaced Plain 10 |
+
+**Buff bar colors (ตรงกับสี item ที่หยิบ):**
+
+| Buff | สี HUD |
+|---|---|
+| DOUBLE | เขียว `(100,255,100)` |
+| SPREAD | ฟ้า `(100,200,255)` |
+| RAPID | ส้ม `(255,150,50)` |
+| SHIELD | เหลือง `(255,220,0)` |
+| SCORE_MULT | ม่วง `(255,100,255)` |
+| Kill progress | ชมพู `(255,120,180)` |
 
 ---
 
@@ -998,6 +1018,12 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 | W | 600 px |
 | H | 760 px |
 | targetFps | refresh×2 หรือ 120 |
+
+### World
+
+| Constant | ค่า |
+|---|---|
+| `KILLS_PER_LIFE` | 100 (ฆ่าครบ 100 ตัว → +1 ชีวิต) |
 
 ### Enemy (abstract)
 
@@ -1095,13 +1121,14 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 
 ### 20.3 ค่า/ระยะเวลาคงที่ (Fixed Durations)
 
-| ค่า | ระยะเวลา |
+| ค่า | ระยะเวลา / จำนวน |
 |---|---|
 | DOUBLE_SHOT | 12s |
 | SPREAD_SHOT | 10s |
 | RAPID_FIRE | 8s (stack กับ DOUBLE/SPREAD) |
 | SHIELD | 15s ต่อชั้น (stack ได้, DualFighter ไม่ stack) |
 | SCORE_MULT | 10s |
+| Kill progress → bonus life | 100 kills |
 | Player invulnerable หลังโดน | 2.0s |
 | Boss phase transition invuln | 1.2s |
 | Power-up lifetime (ก่อนหายถ้าไม่เก็บ) | 12s |
@@ -1125,6 +1152,14 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 ---
 
 ## 22. Changelog
+
+### v3.4 — Kill Progress Gauge, DualFighter Damage Color & HUD Polish
+- **Kill progress gauge:** `world.killProgress` นับฆ่า 0→100 → `player.gainLife()` แล้วรีเซ็ต; HUD แสดง `♥ +1 xx/100` + bar สีชมพูระหว่าง LIVES และ buff rows; `world.onEnemyKilled()` consolidate kill logic ทุกจุด (bullet hit, body collision)
+- **DualFighter damage color:** HP=2 → สีเขียว, HP=1 → สีแดงทั้ง body/wing/cockpit/glow/pips; explosion ก็ใช้สีตาม HP ขณะตาย
+- **HUD buff colors:** แก้ให้ตรงกับสี item ที่หยิบ — SPREAD ฟ้า (เดิมเขียวซ้ำกับ DOUBLE), RAPID ส้ม (เดิมฟ้า), SCORE_MULT ม่วง (เดิมส้ม)
+- **HUD buff spacing:** ขยาย row height 20→26px และเพิ่ม gap ระหว่าง kill gauge กับ buff rows อ่านง่ายขึ้น
+- **Menu power-up redesign:** กล่องใหญ่ขึ้น (96×24px จาก 36×17px), font 13/11px (จาก 10/9px), style ตรง PowerUp.draw() จริง (glow + darker fill + border), กระจายเต็มหน้าจอ 5 ช่อง
+- **Power-up drop rate:** 12% → 20%
 
 ### v3.3 — Shield Stacking, RAPID+Shot Stacking & HUD Countdown Bars
 - **Shield stacking:** โล่ทุกชั้นมี timer แยก 15s — `shieldTimers: List<Double>` แทน boolean + single timer; โล่ที่เวลาน้อยสุดรับดาเมจก่อนเสมอ; HUD แสดง `⬡ SHIELD x{n}` เมื่อมีหลายชั้น

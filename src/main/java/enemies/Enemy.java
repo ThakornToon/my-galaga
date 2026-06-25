@@ -141,7 +141,7 @@ public abstract class Enemy extends GameObject {
             onDeath();
             world.spawnExplosion(x, y, colorPrimary);
             world.score += scoreValue * world.scoreMultiplier;
-            world.kills++;
+            world.onEnemyKilled();
             world.maybeDropPowerUp(x, y);
             destroy();
         } else {

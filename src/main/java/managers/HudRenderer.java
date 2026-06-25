@@ -43,9 +43,16 @@ public class HudRenderer {
             if (hearts.isEmpty()) hearts = "♥";
             g2.drawString("LIVES: " + hearts.trim(), 12, 52);
 
-            // Active buff rows — each takes 20px (label + bar); y advances per active buff
+            // Kill progress gauge — fills every 100 kills for +1 life
+            Color kpColor = new Color(255, 120, 180);
+            g2.setFont(new Font("Monospaced", Font.BOLD, 12));
+            g2.setColor(kpColor);
+            g2.drawString("♥ +1  " + world.killProgress + "/" + World.KILLS_PER_LIFE, 12, 66);
+            drawBuffBar(g2, world.killProgress / (double) World.KILLS_PER_LIFE, kpColor, 12, 71, 100);
+
+            // Active buff rows — each row: label + bar + 26px gap
             g2.setFont(new Font("Monospaced", Font.BOLD, 14));
-            int buffY = 72;
+            int buffY = 92;
 
             if (p.getPowerUp() != Player.PowerUpState.NONE) {
                 Color col = switch (p.getPowerUp()) {
@@ -65,16 +72,16 @@ public class HudRenderer {
                 };
                 g2.setColor(col);
                 g2.drawString(label, 12, buffY);
-                drawBuffBar(g2, Math.max(0, frac), col, 12, buffY + 4, 120);
-                buffY += 20;
+                drawBuffBar(g2, Math.max(0, frac), col, 12, buffY + 5, 120);
+                buffY += 26;
             }
 
             if (p.isRapid()) {
                 Color col = new Color(255, 150, 50);
                 g2.setColor(col);
                 g2.drawString("⬡ RAPID", 12, buffY);
-                drawBuffBar(g2, Math.max(0, p.getRapidTimer() / Player.RAPID_DURATION), col, 12, buffY + 4, 120);
-                buffY += 20;
+                drawBuffBar(g2, Math.max(0, p.getRapidTimer() / Player.RAPID_DURATION), col, 12, buffY + 5, 120);
+                buffY += 26;
             }
 
             if (p.hasShield()) {
@@ -82,19 +89,19 @@ public class HudRenderer {
                 String label = p.getShieldCount() > 1 ? "⬡ SHIELD x" + p.getShieldCount() : "⬡ SHIELD";
                 g2.setColor(col);
                 g2.drawString(label, 12, buffY);
-                drawBuffBar(g2, Math.max(0, p.getShieldTimer() / Player.SHIELD_DURATION), col, 12, buffY + 4, 120);
-                buffY += 20;
+                drawBuffBar(g2, Math.max(0, p.getShieldTimer() / Player.SHIELD_DURATION), col, 12, buffY + 5, 120);
+                buffY += 26;
             }
 
             if (world.scoreMultiplier > 1) {
                 Color col = new Color(255, 100, 255);
                 g2.setColor(col);
                 g2.drawString("⬡ x" + world.scoreMultiplier + " SCORE", 12, buffY);
-                drawBuffBar(g2, Math.max(0, p.getScoreMultTimer() / Player.SCORE_MULT_DURATION), col, 12, buffY + 4, 120);
-                buffY += 20;
+                drawBuffBar(g2, Math.max(0, p.getScoreMultTimer() / Player.SCORE_MULT_DURATION), col, 12, buffY + 5, 120);
+                buffY += 26;
             }
 
-            buffY += 4;
+            buffY += 6;
 
             // Dual fighter indicator
             int dfCount = world.allOf(DualFighter.class).size();

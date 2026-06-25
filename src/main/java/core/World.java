@@ -2,6 +2,7 @@ package core;
 
 import entities.GameObject;
 import entities.Particle;
+import entities.Player;
 import entities.PowerUp;
 
 import java.awt.Color;
@@ -14,9 +15,12 @@ import java.util.*;
  */
 public class World {
     public final int width, height;
+    public static final int KILLS_PER_LIFE = 100;
+
     public int score           = 0;
     public int wave            = 1;
     public int kills           = 0;
+    public int killProgress    = 0;   // kills toward next bonus life (0–99)
     public int scoreMultiplier = 1;
     public boolean gameOver    = false;
     public boolean bossDefeated = false;
@@ -99,6 +103,16 @@ public class World {
 
     public List<Particle> particles() { return particles; }
     public Random rng()               { return rng;       }
+
+    public void onEnemyKilled() {
+        kills++;
+        killProgress++;
+        if (killProgress >= KILLS_PER_LIFE) {
+            killProgress = 0;
+            List<Player> ps = allOf(Player.class);
+            if (!ps.isEmpty()) ps.get(0).gainLife();
+        }
+    }
 
     public void maybeDropPowerUp(double x, double y) {
         if (rng.nextDouble() > 0.20) return;
