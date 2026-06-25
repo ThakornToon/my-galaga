@@ -6,6 +6,7 @@ import patterns.*;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Player extends GameObject {
@@ -17,12 +18,21 @@ public class Player extends GameObject {
     private double invulnerableTimer = 0;
     private boolean invulnerable = false;
 
-    public enum PowerUpState { NONE, DOUBLE, SPREAD, RAPID }
+    public static final double DOUBLE_DURATION     = 12;
+    public static final double SPREAD_DURATION     = 10;
+    public static final double RAPID_DURATION      = 8;
+    public static final double SHIELD_DURATION     = 15;
+    public static final double SCORE_MULT_DURATION = 10;
+
+    // Shot-type and rapid are tracked independently so they can stack
+    public enum PowerUpState { NONE, DOUBLE, SPREAD }
     private PowerUpState powerUp = PowerUpState.NONE;
     private double powerUpTimer = 0;
-    private boolean hasShield = false;
-    private double shieldTimer = 0;
-    private int scoreMultTimer = 0;
+    private double rapidTimer   = 0;
+
+    // Each collected shield gets its own timer; the one with least time absorbs the next hit
+    private final List<Double> shieldTimers = new ArrayList<>();
+    private double scoreMultTimer = 0;
 
     // ── Special (explosive) ammo, earned by defeating bosses ─────────────────
     private int specialAmmo = 0;
@@ -45,11 +55,17 @@ public class Player extends GameObject {
     public void setMoveRight(boolean v) { movingRight = v; }
     public void setShooting(boolean v)  { shooting    = v; }
 
-    public int getLives()               { return lives;    }
-    public PowerUpState getPowerUp()    { return powerUp;  }
-    public boolean hasShield()          { return hasShield; }
-    public boolean isInvulnerable()     { return invulnerable; }
-    public int getSpecialAmmo()         { return specialAmmo; }
+    public int getLives()               { return lives;                            }
+    public PowerUpState getPowerUp()    { return powerUp;                          }
+    public double getPowerUpTimer()     { return powerUpTimer;                     }
+    public boolean isRapid()            { return rapidTimer > 0;                   }
+    public double getRapidTimer()       { return rapidTimer;                       }
+    public boolean hasShield()          { return !shieldTimers.isEmpty();          }
+    public int getShieldCount()         { return shieldTimers.size();              }
+    public double getShieldTimer()      { return hasShield() ? Collections.min(shieldTimers) : 0; }
+    public double getScoreMultTimer()   { return scoreMultTimer;                   }
+    public boolean isInvulnerable()     { return invulnerable;                     }
+    public int getSpecialAmmo()         { return specialAmmo;                      }
 
     /** Award special explosive rounds (called when a boss is defeated). */
     public void addSpecialAmmo(int n)   { specialAmmo += n; }
@@ -78,22 +94,20 @@ public class Player extends GameObject {
 
     public void applyPowerUp(PowerUp.Type type) {
         switch (type) {
-            case DOUBLE_SHOT -> { powerUp = PowerUpState.DOUBLE; powerUpTimer = 12; }
-            case SPREAD_SHOT -> { powerUp = PowerUpState.SPREAD; powerUpTimer = 10; }
-            case RAPID_FIRE  -> { powerUp = PowerUpState.RAPID;  powerUpTimer = 8;  }
+            case DOUBLE_SHOT -> { powerUp = PowerUpState.DOUBLE; powerUpTimer = DOUBLE_DURATION; }
+            case SPREAD_SHOT -> { powerUp = PowerUpState.SPREAD; powerUpTimer = SPREAD_DURATION; }
+            case RAPID_FIRE  -> { rapidTimer = RAPID_DURATION; }
             case SHIELD      -> {
-                hasShield = true;
-                shieldTimer = 10;
-                for (DualFighter df : dualFighters) df.applyShield(10);
+                shieldTimers.add(SHIELD_DURATION);
+                for (DualFighter df : dualFighters) df.applyShield(SHIELD_DURATION);
             }
-            case SCORE_MULT  -> { world.scoreMultiplier = 2; scoreMultTimer = 600; }
+            case SCORE_MULT  -> { world.scoreMultiplier = 2; scoreMultTimer = SCORE_MULT_DURATION; }
         }
     }
 
     public void absorbHit() {
-        if (hasShield) {
-            hasShield  = false;
-            shieldTimer = 0;
+        if (!shieldTimers.isEmpty()) {
+            shieldTimers.remove(Collections.min(shieldTimers));
             return;
         }
         if (invulnerable) return;
@@ -121,12 +135,11 @@ public class Player extends GameObject {
             powerUpTimer -= dt;
             if (powerUpTimer <= 0) powerUp = PowerUpState.NONE;
         }
-        if (shieldTimer > 0) {
-            shieldTimer -= dt;
-            if (shieldTimer <= 0) hasShield = false;
-        }
+        if (rapidTimer > 0) rapidTimer -= dt;
+        shieldTimers.replaceAll(t -> t - dt);
+        shieldTimers.removeIf(t -> t <= 0);
         if (scoreMultTimer > 0) {
-            scoreMultTimer--;
+            scoreMultTimer -= dt;
             if (scoreMultTimer <= 0) world.scoreMultiplier = 1;
         }
         if (shootCooldown > 0) shootCooldown -= dt;
@@ -151,8 +164,7 @@ public class Player extends GameObject {
         }
 
         if (shooting && shootCooldown <= 0) {
-            double cooldown = (powerUp == PowerUpState.RAPID) ? 0.1 : 0.22;
-            shootCooldown   = cooldown;
+            shootCooldown = isRapid() ? 0.1 : 0.22;
             SoundManager.playLaser();
             BulletPattern pattern = switch (powerUp) {
                 case DOUBLE -> new DoubleStraightPattern(520, 10);
@@ -199,7 +211,7 @@ public class Player extends GameObject {
         drawWing(g2,  1);
 
         // Shield
-        if (hasShield) {
+        if (hasShield()) {
             g2.setColor(new Color(255, 220, 0, 70));
             g2.fillOval((int)(x - w/2 - 8), (int)(y - h/2 - 8),
                     (int)(w + 16), (int)(h + 16));

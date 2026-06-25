@@ -43,34 +43,69 @@ public class HudRenderer {
             if (hearts.isEmpty()) hearts = "♥";
             g2.drawString("LIVES: " + hearts.trim(), 12, 52);
 
-            // Power-up / shield indicator
-            if (p.getPowerUp() != Player.PowerUpState.NONE || p.hasShield()) {
-                String label = p.hasShield() ? "⬡ SHIELD" : switch (p.getPowerUp()) {
+            // Active buff rows — each takes 20px (label + bar); y advances per active buff
+            g2.setFont(new Font("Monospaced", Font.BOLD, 14));
+            int buffY = 72;
+
+            if (p.getPowerUp() != Player.PowerUpState.NONE) {
+                Color col = new Color(100, 255, 100);
+                String label = switch (p.getPowerUp()) {
                     case DOUBLE -> "⬡ DOUBLE";
                     case SPREAD -> "⬡ SPREAD";
-                    case RAPID  -> "⬡ RAPID";
                     default     -> "";
                 };
-                Color col = p.hasShield()
-                        ? new Color(255, 220, 0)
-                        : new Color(100, 255, 100);
+                double frac = switch (p.getPowerUp()) {
+                    case DOUBLE -> p.getPowerUpTimer() / Player.DOUBLE_DURATION;
+                    case SPREAD -> p.getPowerUpTimer() / Player.SPREAD_DURATION;
+                    default     -> 0;
+                };
                 g2.setColor(col);
-                g2.drawString(label, 12, 72);
+                g2.drawString(label, 12, buffY);
+                drawBuffBar(g2, Math.max(0, frac), col, 12, buffY + 4, 120);
+                buffY += 20;
             }
+
+            if (p.isRapid()) {
+                Color col = new Color(80, 220, 255);
+                g2.setColor(col);
+                g2.drawString("⬡ RAPID", 12, buffY);
+                drawBuffBar(g2, Math.max(0, p.getRapidTimer() / Player.RAPID_DURATION), col, 12, buffY + 4, 120);
+                buffY += 20;
+            }
+
+            if (p.hasShield()) {
+                Color col = new Color(255, 220, 0);
+                String label = p.getShieldCount() > 1 ? "⬡ SHIELD x" + p.getShieldCount() : "⬡ SHIELD";
+                g2.setColor(col);
+                g2.drawString(label, 12, buffY);
+                drawBuffBar(g2, Math.max(0, p.getShieldTimer() / Player.SHIELD_DURATION), col, 12, buffY + 4, 120);
+                buffY += 20;
+            }
+
+            if (world.scoreMultiplier > 1) {
+                Color col = new Color(255, 160, 60);
+                g2.setColor(col);
+                g2.drawString("⬡ x" + world.scoreMultiplier + " SCORE", 12, buffY);
+                drawBuffBar(g2, Math.max(0, p.getScoreMultTimer() / Player.SCORE_MULT_DURATION), col, 12, buffY + 4, 120);
+                buffY += 20;
+            }
+
+            buffY += 4;
 
             // Dual fighter indicator
             int dfCount = world.allOf(DualFighter.class).size();
             if (dfCount > 0) {
                 g2.setFont(new Font("Monospaced", Font.BOLD, 13));
                 g2.setColor(new Color(100, 255, 120));
-                g2.drawString("✦ WINGMAN x" + dfCount, 12, 90);
+                g2.drawString("✦ WINGMAN x" + dfCount, 12, buffY);
+                buffY += 18;
             }
 
             // Special (explosive) ammo — earned from bosses, fired with Shift
             if (p.getSpecialAmmo() > 0) {
                 g2.setFont(new Font("Monospaced", Font.BOLD, 14));
                 g2.setColor(new Color(150, 240, 255));
-                g2.drawString("◎ SPECIAL x" + p.getSpecialAmmo() + "  [SHIFT]", 12, 110);
+                g2.drawString("◎ SPECIAL x" + p.getSpecialAmmo() + "  [SHIFT]", 12, buffY);
             }
         }
 
@@ -80,5 +115,12 @@ public class HudRenderer {
         g2.drawString("ENEMIES: " + world.allOf(Enemy.class).size(), W - 120, 28);
 
         g2.dispose();
+    }
+
+    private void drawBuffBar(Graphics2D g2, double fraction, Color col, int x, int y, int barW) {
+        g2.setColor(new Color(50, 50, 50, 180));
+        g2.fillRoundRect(x, y, barW, 5, 3, 3);
+        g2.setColor(col);
+        g2.fillRoundRect(x, y, (int)(barW * fraction), 5, 3, 3);
     }
 }

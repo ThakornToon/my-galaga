@@ -361,7 +361,8 @@ World world       // reference กลับไปหา World
 | rapid fire cooldown | 0.10s |
 | shield visual | aura สีเหลืองรอบยาน (fillOval +8px, strokeOval +8px) |
 
-**Power-up State enum:** `NONE | DOUBLE | SPREAD | RAPID`
+**Shot-type enum:** `NONE | DOUBLE | SPREAD`  
+**Rapid fire:** tracked independently (`rapidTimer`) — stacks with any shot type
 
 **DualFighter management:**
 - Player ถือ `List<DualFighter>` และ sync ตำแหน่งทุก frame
@@ -696,19 +697,21 @@ List<Bullet> createBullets(World world, double srcX, double srcY, boolean fromPl
 
 ## 12. ระบบ Power-Up
 
-ตก 12% เมื่อศัตรูตาย (`world.maybeDropPowerUp()`), fall speed: 90 px/sec, lifetime: 12s
+ตก 20% เมื่อศัตรูตาย (`world.maybeDropPowerUp()`), fall speed: 90 px/sec, lifetime: 12s
 
 | สี | Label | Type | Effect | Duration |
 |---|---|---|---|---|
 | 🟢 เขียว | `2X` | `DOUBLE_SHOT` | `DoubleStraightPattern(520, 10)` | 12s |
 | 🔵 น้ำเงิน | `SP` | `SPREAD_SHOT` | `SpreadPattern(520, 3, 30)` | 10s |
-| 🟠 ส้ม | `RF` | `RAPID_FIRE` | cooldown 0.22s → 0.10s | 8s |
-| 🟡 เหลือง | `SH` | `SHIELD` | กัน 1 hit (กระสุน/ชน) — แชร์ให้ DualFighter ด้วย | 10s |
-| 🟣 ม่วง | `SC` | `SCORE_MULT` | `world.scoreMultiplier = 2` | 600 ticks (~10s) |
+| 🟠 ส้ม | `RF` | `RAPID_FIRE` | cooldown 0.22s → 0.10s — **stack กับ DOUBLE/SPREAD ได้** | 8s |
+| 🟡 เหลือง | `SH` | `SHIELD` | กัน 1 hit ต่อชั้น — **stack ได้หลายชั้น** — แชร์ให้ DualFighter ด้วย | 15s ต่อชั้น |
+| 🟣 ม่วง | `SC` | `SCORE_MULT` | `world.scoreMultiplier = 2` | 10s |
 
-> **หมายเหตุ Shield:** `absorbHit()` เช็ค `hasShield` ก่อน → cancel hit, ไม่ต้องลด lives  
-> เมื่อ Player ได้ SHIELD จะ loop เรียก `df.applyShield(10)` ให้ DualFighter ทุกลำพร้อมกัน  
-> **หมายเหตุ Score Mult:** ใช้ tick counter (ไม่ใช่ seconds) ลดทุก frame
+> **Shield Stacking:** แต่ละ SHIELD power-up เพิ่มโล่ชั้นใหม่เข้า `List<Double> shieldTimers` แยกกัน  
+> `absorbHit()` ดึงโล่ที่เวลาน้อยที่สุด (จะหมดก่อน) ออกก่อนเสมอ — `hasShield() = !shieldTimers.isEmpty()`  
+> HUD แสดง `⬡ SHIELD x2` พร้อม bar ของโล่ที่จะหมดก่อน  
+> เมื่อ Player ได้ SHIELD จะเรียก `df.applyShield(15)` ให้ DualFighter ทุกลำพร้อมกัน (DualFighter ไม่ stack)  
+> **RAPID_FIRE Stacking:** `rapidTimer` เป็น field แยกต่างหากจาก shot-type — การได้ RAPID_FIRE ขณะมี DOUBLE/SPREAD ทำให้ยิงแบบนั้นเร็วขึ้นทันที
 
 **Pickup hitbox:** มี margin เพิ่ม ±7px เพื่อให้เก็บง่ายขึ้นเมื่อ Power-up ผ่านมาเร็ว
 
@@ -830,7 +833,7 @@ Shoot cooldown: max(0.5, initial - wave × 0.04) — ลดต่อ wave
 - สูงสุด 2 ลำ (1 ซ้าย + 1 ขวา)
 - **HP = 2** — ต้องโดนตี 2 ครั้งถึงจะถูกทำลาย (มี HP pips แสดงใต้ cockpit)
 - ยิงพร้อม Player ทุกนัด: pattern เดียวกับ power-up ปัจจุบันของ Player (`tryShoot` ถูกเรียกตอน Player ยิง ไม่มี cooldown แยกของตัวเอง — Player คุม rate อยู่แล้ว)
-- **Shield:** เมื่อ Player เก็บ SHIELD power-up จะแชร์โล่ให้ DualFighter ทุกลำ (`applyShield(10s)`) โล่กัน 1 hit ก่อนค่อยลด HP
+- **Shield:** เมื่อ Player เก็บ SHIELD power-up จะแชร์โล่ให้ DualFighter ทุกลำ (`applyShield(15s)`) โล่กัน 1 hit ก่อนค่อยลด HP (DualFighter ไม่ stack)
 - ถูกกระสุน/ชนศัตรู → `absorbHit()`: เช็คโล่ → ลด HP → ถ้า HP ≤ 0 จึงหาย + `spawnExplosion(cyan)` (Player ยังอยู่)
 - **ไม่** เคลื่อนที่อิสระ — ตำแหน่งถูก sync จาก Player ทุก frame; `update()` แค่ลด shield timer
 - HUD: `✦ WINGMAN x{n}`
@@ -844,9 +847,10 @@ Shoot cooldown: max(0.5, initial - wave × 0.04) — ลดต่อ wave
 
 ### Shield
 
-- รับจาก SHIELD power-up
-- `absorbHit()` เช็ค shield ก่อน lives — ถ้ามี shield: ยกเลิก hit, `hasShield=false`
+- รับจาก SHIELD power-up (ได้หลายชั้น — แต่ละชั้น = timer แยก 15s)
+- `absorbHit()` เช็ค `shieldTimers` ก่อน lives — ถ้ามีโล่: ดึงโล่ที่เวลาน้อยสุดออก 1 ชั้น, ยกเลิก hit
 - ป้องกันได้ทั้งกระสุน, ชน enemy body, ชน DiveBug EnergyWave
+- HUD: `⬡ SHIELD` (ชั้นเดียว) หรือ `⬡ SHIELD x2` (หลายชั้น) พร้อม countdown bar ของโล่ที่จะหมดก่อน
 
 ### Score Multiplier
 
@@ -1050,7 +1054,7 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 
 | เหตุการณ์ | ความน่าจะเป็น | เงื่อนไข / รายละเอียด | แหล่ง |
 |---|---|---|---|
-| **Power-up drop** เมื่อศัตรูตาย | **12%** | `rng.nextDouble() > 0.12` → return | `World.maybeDropPowerUp` |
+| **Power-up drop** เมื่อศัตรูตาย | **20%** | `rng.nextDouble() > 0.20` → return | `World.maybeDropPowerUp` |
 | **ชนิด Power-up** ที่สุ่มได้ | **20% ต่อชนิด** | uniform จาก 5 ชนิด (`nextInt(5)`) | `World.maybeDropPowerUp` |
 | **Swoop** หลังจบ entry path | **20%** | `nextDouble() < 0.20` ต่อศัตรู 1 ตัว | `WaveManager.spawnOne` |
 | **ShooterEnemy → CAPTURE** | **50%** | ต้อง Player lives > 0 ด้วย ไม่งั้นเป็น BOUNCER | `ShooterEnemy.triggerDive` |
@@ -1071,7 +1075,7 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 
 | ระบบ | สูตร | ผลลัพธ์ตัวอย่าง | แหล่ง |
 |---|---|---|---|
-| **Score Multiplier** (SCORE_MULT) | `scoreMultiplier = 2` | คะแนน **×2** (+100%) นาน ~10s | `Player.applyPowerUp` |
+| **Score Multiplier** (SCORE_MULT) | `scoreMultiplier = 2` | คะแนน **×2** (+100%) นาน 10s | `Player.applyPowerUp` |
 | คะแนนเมื่อชน body (ไม่ยิง) | `scoreValue / 2` | ได้ **50%** ของคะแนนปกติ ไม่คูณ multiplier | `CollisionManager` |
 | **Speed: Drone + Boss** | `1.0 + 0.05·⌊(wave-1)/5⌋` | **+5% ทุก 5 wave** (W1 ×1.0, W6 ×1.05, W11 ×1.10) | `WaveManager.applySpeedMult` |
 | **Speed: ศัตรูอื่น** | `0.75 + 0.10·⌊(wave-1)/2⌋` | ฐาน **75%**, **+10% ทุก 2 wave** (W1 ×0.75, W5 ×0.95, W11 ×1.25) | `WaveManager.applySpeedMult` |
@@ -1095,9 +1099,9 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 |---|---|
 | DOUBLE_SHOT | 12s |
 | SPREAD_SHOT | 10s |
-| RAPID_FIRE | 8s |
-| SHIELD | 10s (แชร์ DualFighter) |
-| SCORE_MULT | 600 ticks (~10s) |
+| RAPID_FIRE | 8s (stack กับ DOUBLE/SPREAD) |
+| SHIELD | 15s ต่อชั้น (stack ได้, DualFighter ไม่ stack) |
+| SCORE_MULT | 10s |
 | Player invulnerable หลังโดน | 2.0s |
 | Boss phase transition invuln | 1.2s |
 | Power-up lifetime (ก่อนหายถ้าไม่เก็บ) | 12s |
@@ -1121,6 +1125,13 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 ---
 
 ## 22. Changelog
+
+### v3.3 — Shield Stacking, RAPID+Shot Stacking & HUD Countdown Bars
+- **Shield stacking:** โล่ทุกชั้นมี timer แยก 15s — `shieldTimers: List<Double>` แทน boolean + single timer; โล่ที่เวลาน้อยสุดรับดาเมจก่อนเสมอ; HUD แสดง `⬡ SHIELD x{n}` เมื่อมีหลายชั้น
+- **RAPID_FIRE stacking:** แยก `rapidTimer` ออกจาก shot-type enum (`PowerUpState` เหลือ `NONE|DOUBLE|SPREAD`) — สามารถ stack RAPID กับ DOUBLE หรือ SPREAD ได้พร้อมกัน ยิงกระจาย/คู่ด้วยความเร็ว rapid
+- **HUD countdown bars:** แต่ละ buff แสดง bar นับถอยหลัง (DOUBLE, SPREAD, RAPID, SHIELD, SCORE_MULT) — y-position dynamic ไม่ hardcode
+- **SCORE_MULT bug fix:** เปลี่ยนจาก frame counter (`int, --`) เป็น `double -= dt` — ระยะเวลา 10s แน่นอนไม่ขึ้นกับ FPS
+- **Shield duration:** 10s → 15s
 
 ### v3.2 — Menu Redesign, Mute Toast & Pause Navigation
 - **Menu enemy roster:** วาดศัตรูครบ 6 ตัว (Drone, OrbitBug, WaveBug, DiveBug, ShooterEnemy, Boss) จาก sprite จริง จัด 2 แถว × 3 พร้อมชื่อและคะแนน; Boss หมุนตาม animation

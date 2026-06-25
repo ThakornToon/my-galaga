@@ -101,7 +101,7 @@ public class World {
     public Random rng()               { return rng;       }
 
     public void maybeDropPowerUp(double x, double y) {
-        if (rng.nextDouble() > 0.12) return;
+        if (rng.nextDouble() > 0.20) return;
         PowerUp.Type[] types = PowerUp.Type.values();
         add(new PowerUp(this, x, y, types[rng.nextInt(types.length)]));
     }

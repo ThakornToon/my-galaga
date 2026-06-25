@@ -21,9 +21,12 @@ public class DualFighter extends GameObject {
     private double shieldTimer = 0;
 
     private static final double FW = 32, FH = 28;
-    private static final Color COLOR_BODY   = new Color(100, 255, 120);
-    private static final Color COLOR_WING   = new Color(40,  160,  60);
-    private static final Color COLOR_ACCENT = new Color(180, 255, 180);
+    private static final Color COLOR_BODY        = new Color(100, 255, 120);
+    private static final Color COLOR_WING        = new Color(40,  160,  60);
+    private static final Color COLOR_ACCENT      = new Color(180, 255, 180);
+    private static final Color COLOR_BODY_DMG    = new Color(255,  80,  80);
+    private static final Color COLOR_WING_DMG    = new Color(160,  30,  30);
+    private static final Color COLOR_ACCENT_DMG  = new Color(255, 180, 180);
 
     public DualFighter(World world, double offsetX) {
         super(world, world.width / 2.0 + offsetX, world.height - 80, FW, FH);
@@ -54,7 +57,7 @@ public class DualFighter extends GameObject {
         this.y = playerY;
     }
 
-    /** Called when player fires — mirrors the player's current power-up pattern */
+    /** Called when player fires — mirrors the player's current shot-type pattern */
     public void tryShoot(Player.PowerUpState powerUp) {
         BulletPattern pattern = switch (powerUp) {
             case DOUBLE -> new DoubleStraightPattern(520, 10);
@@ -79,13 +82,17 @@ public class DualFighter extends GameObject {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
+        Color cBody   = (hp <= 1) ? COLOR_BODY_DMG   : COLOR_BODY;
+        Color cWing   = (hp <= 1) ? COLOR_WING_DMG   : COLOR_WING;
+        Color cAccent = (hp <= 1) ? COLOR_ACCENT_DMG : COLOR_ACCENT;
+
         // Engine glow
         float[] frac  = {0f, 1f};
-        Color[] gcols = {new Color(50, 200, 80, 180),
-                new Color(50, 200, 80, 0)};
+        Color glowOn  = (hp <= 1) ? new Color(200, 50, 50, 180) : new Color(50, 200, 80, 180);
+        Color glowOff = (hp <= 1) ? new Color(200, 50, 50, 0)   : new Color(50, 200, 80, 0);
         g2.setPaint(new LinearGradientPaint(
                 (float)x, (float)(y + FH/2),
-                (float)x, (float)(y + FH/2 + 20), frac, gcols));
+                (float)x, (float)(y + FH/2 + 20), frac, new Color[]{glowOn, glowOff}));
         g2.fillOval((int)(x - 5), (int)(y + FH/2 - 3), 10, 20);
 
         // Body
@@ -93,22 +100,22 @@ public class DualFighter extends GameObject {
                 (int)(x + FW/3), (int)(x + FW/2)};
         int[] by = {(int)(y - FH/2), (int)(y + FH/2), (int)(y + FH/4),
                 (int)(y + FH/4), (int)(y + FH/2)};
-        g2.setColor(COLOR_WING);
+        g2.setColor(cWing);
         g2.fillPolygon(bx, by, 5);
-        g2.setColor(COLOR_BODY);
+        g2.setColor(cBody);
         g2.setStroke(new BasicStroke(1.5f));
         g2.drawPolygon(bx, by, 5);
 
         // Cockpit
-        g2.setColor(new Color(180, 255, 180, 180));
+        g2.setColor(new Color(cAccent.getRed(), cAccent.getGreen(), cAccent.getBlue(), 180));
         g2.fillOval((int)(x - 6), (int)(y - FH/2 + 4), 12, 10);
-        g2.setColor(COLOR_ACCENT);
+        g2.setColor(cAccent);
         g2.setStroke(new BasicStroke(1f));
         g2.drawOval((int)(x - 6), (int)(y - FH/2 + 4), 12, 10);
 
         // HP pips (small dots below cockpit)
         for (int i = 0; i < hp; i++) {
-            g2.setColor(new Color(100, 255, 120));
+            g2.setColor(cBody);
             g2.fillOval((int)(x - 5 + i * 6), (int)(y + FH/2 - 8), 4, 4);
         }
 
@@ -129,6 +136,6 @@ public class DualFighter extends GameObject {
     @Override
     public void destroy() {
         super.destroy();
-        world.spawnExplosion(x, y, COLOR_BODY);
+        world.spawnExplosion(x, y, hp <= 1 ? COLOR_BODY_DMG : COLOR_BODY);
     }
 }
