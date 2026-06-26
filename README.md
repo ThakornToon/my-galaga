@@ -622,15 +622,12 @@ Segment 3 — Settle (26% of 220 pts):
 
 **Parameters:**
 - `fromLeft` / `fromBottom`: มุมเข้าของ convoy
-- `rowOffset`: ±22px สำหรับ parallel row (TWO_ROW_ONE_SIDE)
 - `loopFar`: loop ด้านตรงข้าม (crossover format)
 
-### 4 Convoy Formats
+### 2 Convoy Formats
 
 | Format | รายละเอียด |
 |---|---|
-| `TWO_ROW_ONE_SIDE` | 2 แถวจากฝั่งเดียว, offset แนวนอน ±22px |
-| `TWO_ROW_BOTH` | col คู่ = ฝั่งซ้าย, col คี่ = ฝั่งขวา |
 | `ONE_ROW_ONE_SIDE` | 1 แถว single file จากฝั่งเดียว |
 | `ONE_ROW_CROSSOVER` | 1 แถว, loop บนฝั่งตรงข้ามกับ entry (sweep across) |
 
@@ -1156,7 +1153,7 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 ### v3.4 — Kill Progress Gauge, DualFighter Damage Color & HUD Polish
 - **Kill progress gauge:** `world.killProgress` นับฆ่า 0→100 → `player.gainLife()` แล้วรีเซ็ต; HUD แสดง `♥ +1 xx/100` + bar สีชมพูระหว่าง LIVES และ buff rows; `world.onEnemyKilled()` consolidate kill logic ทุกจุด (bullet hit, body collision)
 - **DualFighter damage color:** HP=2 → สีเขียว, HP=1 → สีแดงทั้ง body/wing/cockpit/glow/pips; explosion ก็ใช้สีตาม HP ขณะตาย
-- **HUD buff colors:** แก้ให้ตรงกับสี item ที่หยิบ — SPREAD ฟ้า (เดิมเขียวซ้ำกับ DOUBLE), RAPID ส้ม (เดิมฟ้า), SCORE_MULT ม่วง (เดิมส้ม)
+- **HUD buff colors:** แก้ให้ตรงกับสี item ที่หยิบ
 - **HUD buff spacing:** ขยาย row height 20→26px และเพิ่ม gap ระหว่าง kill gauge กับ buff rows อ่านง่ายขึ้น
 - **Menu power-up redesign:** กล่องใหญ่ขึ้น (96×24px จาก 36×17px), font 13/11px (จาก 10/9px), style ตรง PowerUp.draw() จริง (glow + darker fill + border), กระจายเต็มหน้าจอ 5 ช่อง
 - **Power-up drop rate:** 12% → 20%
@@ -1168,7 +1165,7 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 - **SCORE_MULT bug fix:** เปลี่ยนจาก frame counter (`int, --`) เป็น `double -= dt` — ระยะเวลา 10s แน่นอนไม่ขึ้นกับ FPS
 - **Shield duration:** 10s → 15s
 
-### v3.2 — Menu Redesign, Mute Toast & Pause Navigation
+### v3.2 — Menu Redesign, Mute Toast & Pause Navigation (Initial commit)
 - **Menu enemy roster:** วาดศัตรูครบ 6 ตัว (Drone, OrbitBug, WaveBug, DiveBug, ShooterEnemy, Boss) จาก sprite จริง จัด 2 แถว × 3 พร้อมชื่อและคะแนน; Boss หมุนตาม animation
 - **Menu layout:** จัดเป็น section ชัดเจน (ENEMY ROSTER / CONTROLS / POWER-UPS) คั่น separator, controls 2 คอลัมน์, power-up ครบ 5 ชนิด
 - **Mute toast:** กด M → ป้าย `♪ SOUND ON` / `✕ SOUND OFF` โผล่พร้อม fade in/out นาน 2.5s (ลบ permanent "MUTED [M]" เดิม)

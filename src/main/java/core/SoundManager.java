@@ -62,11 +62,6 @@ public final class SoundManager {
         }
     }
 
-    public static synchronized void stopBgm() {
-        if (bgmClip != null) { bgmClip.stop(); bgmClip.close(); bgmClip = null; }
-        currentBgm = null;
-    }
-
     private static final float LASER_GAIN_DB = -15f;   // ลดเสียง laser ลง 15 dB
 
     public static void playLaser() {

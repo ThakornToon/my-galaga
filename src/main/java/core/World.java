@@ -23,7 +23,6 @@ public class World {
     public int killProgress    = 0;   // kills toward next bonus life (0–99)
     public int scoreMultiplier = 1;
     public boolean gameOver    = false;
-    public boolean bossDefeated = false;
     public double totalTime    = 0;
 
     private double formationOffset = 0;
@@ -59,12 +58,6 @@ public class World {
         for (GameObject go : objects)
             if (type.isInstance(go) && go.isAlive()) result.add(type.cast(go));
         return result;
-    }
-
-    public void clear() {
-        objects.clear();
-        pendingAdd.clear();
-        particles.clear();
     }
 
     public void spawnParticles(double x, double y, Color color, int count,

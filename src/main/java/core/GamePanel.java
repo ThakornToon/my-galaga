@@ -87,8 +87,9 @@ public class GamePanel extends Canvas {
             case KeyEvent.VK_RIGHT, KeyEvent.VK_D -> p.setMoveRight(pressed);
             case KeyEvent.VK_SPACE, KeyEvent.VK_Z -> p.setShooting(pressed);
             case KeyEvent.VK_SHIFT -> {
-                if (pressed) { if (!shiftHeld) { shiftHeld = true; p.requestSpecialFire(); } }
-                else shiftHeld = false;
+                if (pressed) {
+                    if (!shiftHeld) { shiftHeld = true; p.requestSpecialFire(); }
+                } else shiftHeld = false;
             }
         }
     }
@@ -154,8 +155,9 @@ public class GamePanel extends Canvas {
      * image blit is cheap.
      */
     private void render() {
-        if (frame == null)
+        if (frame == null) {
             frame = new java.awt.image.BufferedImage(W, H, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        }
         Graphics2D fg = frame.createGraphics();
         renderScene(fg);
         fg.dispose();
@@ -165,6 +167,7 @@ public class GamePanel extends Canvas {
             if (isDisplayable()) createBufferStrategy(2);
             return;
         }
+
         do {
             do {
                 Graphics g = bs.getDrawGraphics();
@@ -226,7 +229,7 @@ public class GamePanel extends Canvas {
             case GAME_OVER-> { drawGame(g2); drawGameOver(g2); }
         }
         g2.setFont(new Font("Monospaced", Font.PLAIN, 10));
-        g2.setColor(new Color(60, 60, 80));
+        g2.setColor(new Color(120, 120, 160));
         g2.drawString("FPS:" + fps, W - 52, H - 6);
         if (muteToastTimer > 0) drawMuteToast(g2);
     }

@@ -12,10 +12,8 @@ import java.util.*;
  *
  * Convoy formats (each can enter from the LEFT or RIGHT side and from the
  * TOP or BOTTOM edge, all chosen per group):
- *   A) 2-row parallel, one side
- *   B) 2-row parallel, both sides simultaneously
- *   C) 1-row single file, one side
- *   D) 1-row single file, crossover (loops on the far side)
+ *   A) 1-row single file, one side
+ *   B) 1-row single file, crossover (loops on the far side)
  *
  * Busier waves (wave ≥ 4) spawn MIXED convoys: two enemy types sweep in
  * together as paired, laterally-offset streams that settle into two adjacent
@@ -55,7 +53,7 @@ public class WaveManager implements Updatable {
                               String groupKey, int lane) {}
 
     // Convoy format enum
-    private enum ConvoyFormat { TWO_ROW_ONE_SIDE, TWO_ROW_BOTH, ONE_ROW_ONE_SIDE, ONE_ROW_CROSSOVER }
+    private enum ConvoyFormat { ONE_ROW_ONE_SIDE, ONE_ROW_CROSSOVER }
 
     private final World world;
     private final List<SpawnEntry> queue = new ArrayList<>();
@@ -371,10 +369,6 @@ public class WaveManager implements Updatable {
             // sit on opposite halves of the screen instead of piling up together.
             // Colour interleaving is done per column in addMixedConvoy.
             fmt = ConvoyFormat.ONE_ROW_ONE_SIDE;
-        } else if (wave >= 2 && world.rng().nextDouble() < 0.5) {
-            // Bias busier waves toward two-row formations.
-            fmt = world.rng().nextBoolean() ? ConvoyFormat.TWO_ROW_ONE_SIDE
-                                            : ConvoyFormat.TWO_ROW_BOTH;
         } else {
             ConvoyFormat[] all = ConvoyFormat.values();
             fmt = all[world.rng().nextInt(all.length)];
@@ -401,15 +395,6 @@ public class WaveManager implements Updatable {
         // Every non-mixed group has lane 0, so this leaves them unchanged.
         boolean left = (lane == 0) ? cd.fromLeft() : !cd.fromLeft();
         return switch (cd.format()) {
-            // Two parallel rows from one side: odd columns ride a laterally
-            // offset copy of the same arc.
-            case TWO_ROW_ONE_SIDE ->
-                    EntryPath.buildFigure8(cd.fromLeft(), fb, formX, formY, W, H,
-                                           (col % 2 == 0) ? 0 : 22, false);
-            // Two rows fed by both sides: even columns from the left, odd from
-            // the right.
-            case TWO_ROW_BOTH ->
-                    EntryPath.buildFigure8(col % 2 == 0, fb, formX, formY, W, H, 0, false);
             case ONE_ROW_ONE_SIDE ->
                     EntryPath.buildFigure8(left, fb, formX, formY, W, H, 0, false);
             // Crossover: sweep across from the entry corner, loop on the FAR

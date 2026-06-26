@@ -12,7 +12,6 @@ import java.util.Random;
 
 public class FormationManager implements Updatable {
     private double offsetX = 60;
-    private double timer = 0;
     private boolean goRight = true;
     private double diveTimer = 0;
     private final World world;
@@ -26,9 +25,9 @@ public class FormationManager implements Updatable {
     @Override
     public void update(double dt) {
         double speed = 40 + world.wave * 5;
-        timer += dt;
         if (goRight) offsetX += speed * dt;
         else offsetX -= speed * dt;
+
         if (offsetX > 90) goRight = false;
         if (offsetX < -90) goRight = true;
 
@@ -41,8 +40,6 @@ public class FormationManager implements Updatable {
             triggerDive();
         }
     }
-
-    public double getOffsetX() { return offsetX; }
 
     private void triggerDive() {
         List<Enemy> candidates = new ArrayList<>();

@@ -3,7 +3,6 @@ package managers;
 import core.World;
 import core.Updatable;
 import entities.*;
-import enemies.Boss;
 import enemies.Enemy;
 import enemies.ShooterEnemy;
 
@@ -34,7 +33,6 @@ public class CollisionManager implements Updatable {
                         detonateSpecial(b, enemies);
                     } else {
                         e.absorbHit(b.getDamage());
-                        if (e instanceof Boss && !e.isAlive()) world.bossDefeated = true;
                     }
                     b.destroy();
                     break;
@@ -173,7 +171,6 @@ public class CollisionManager implements Updatable {
             double dx = e.getX() - bx, dy = e.getY() - by;
             if (dx * dx + dy * dy <= r2) {
                 e.absorbHit(b.getAoeDamage());
-                if (e instanceof Boss && !e.isAlive()) world.bossDefeated = true;
             }
         }
     }
