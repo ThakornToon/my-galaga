@@ -39,7 +39,7 @@
 | Game Loop | Dedicated Thread (ไม่ใช่ Swing Timer) |
 | Target FPS | refresh rate × 2 (auto-detect จอ) |
 | ขนาดหน้าจอ | 600 × 760 px (fixed, non-resizable) |
-| จำนวนไฟล์ Java | 25 ไฟล์ (~3,359 บรรทัด) |
+| จำนวนไฟล์ Java | 35 ไฟล์ (~3,827 บรรทัด) |
 | Sound Assets | 4 ไฟล์ `.wav` ใน resources |
 | Design Patterns | Strategy (BulletPattern), Template Method (Enemy AI), Observer-lite (World flush) |
 
@@ -60,7 +60,8 @@ Galaga/
 │       │   │   ├── Drawable.java         # interface: draw(Graphics2D)
 │       │   │   ├── Updatable.java        # interface: update(double dt)
 │       │   │   ├── GamePanel.java        # Canvas หลัก: game loop thread, render, input
-│       │   │   └── World.java            # container + factory: objects, particles, score
+│       │   │   ├── World.java            # container + factory: objects, particles, score
+│       │   │   └── SoundManager.java     # BGM (menu/play/gameover) + laser SFX + mute toggle
 │       │   ├── effects/
 │       │   │   └── StarField.java        # 120 ดาวเคลื่อนที่ parallax พื้นหลัง
 │       │   ├── entities/
@@ -507,7 +508,7 @@ HP: 1  |  Score: 250  |  Wave: 5+
 
 - ลำแสงวาดเป็นจุดประกะพริบ + nozzle เรืองแสง + charging ring รอบตัว
 - ยิงโดน GhostShip → Ghost หาย (`ghostHit()`) **ไม่คืน life**
-- ยิงโดน ShooterEnemy ขณะ Ghost ยังอยู่ → Ghost หาย + `player.gainLife()` + `player.awardDualFighter()`
+- ยิงโดน ShooterEnemy ขณะ Ghost ยังอยู่ → Ghost หาย + `player.gainLife()` + `player.awardDualFighter()` (ถ้ามี wingman ครบ 2 ลำแล้ว reward จะซ่อม HP ลำที่บอบช้ำที่สุดแทน)
 
 > **กฎกันตาย (life-steal guard):** ลำแสงดูดจะ "ขโมยเลือด" ได้ก็ต่อเมื่อ Player มี `lives > 1` เท่านั้น — ถ้า Player เหลือชีวิตสุดท้าย (`lives ≤ 1`) ลำแสงจะ `startSmoothReturn()` ยกเลิก capture ทันที ไม่หักเลือด เพื่อไม่ให้การโดนดูดเป็นการฆ่าผู้เล่นทันที
 
@@ -827,7 +828,8 @@ Shoot cooldown: max(0.5, initial - wave × 0.04) — ลดต่อ wave
 - **รับ:** ยิงโดน ShooterEnemy ขณะลาก GhostShip อยู่
 - ขนาด: 32 × 28 px, สีเขียวสด (`#64FF78`)
 - offset: -50px (ซ้าย) หรือ +50px (ขวา) จาก Player
-- สูงสุด 2 ลำ (1 ซ้าย + 1 ขวา)
+- สูงสุด 2 ลำ (1 ซ้าย + 1 ขวา) — ลำแรกเกิดฝั่งที่ยังว่าง
+- **Reward overflow → repair:** ถ้าได้ rescue reward ขณะมีครบ 2 ลำแล้ว `awardDualFighter()` จะไม่ทิ้งรางวัล แต่จะ **ซ่อม HP ลำที่บอบช้ำที่สุด** (HP น้อยสุดและยังไม่เต็ม) กลับเป็นเต็มด้วย `restoreHp()` + particle เขียว — ถ้าทุกลำ HP เต็มอยู่แล้วจึงจะไม่เกิดผล
 - **HP = 2** — ต้องโดนตี 2 ครั้งถึงจะถูกทำลาย (มี HP pips แสดงใต้ cockpit)
 - **Damage color:** HP เต็ม = สีเขียว (`#64FF78`); HP เหลือ 1 = สีแดง (`#FF5050`) — body, wing, cockpit, engine glow และ HP pip เปลี่ยนสีพร้อมกัน; explosion ตอนตายก็ใช้สีตาม HP ขณะนั้น
 - ยิงพร้อม Player ทุกนัด: pattern เดียวกับ power-up ปัจจุบันของ Player (`tryShoot` ถูกเรียกตอน Player ยิง ไม่มี cooldown แยกของตัวเอง — Player คุม rate อยู่แล้ว)
@@ -1150,6 +1152,10 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 
 ## 22. Changelog
 
+### v3.5 — Wingman Repair Reward & Bullet Visibility
+- **Wingman repair reward:** เมื่อได้ rescue reward ขณะมี DualFighter ครบ 2 ลำ `awardDualFighter()` ไม่ทิ้งรางวัลอีกต่อไป แต่จะซ่อม HP ลำที่บอบช้ำที่สุด (`restoreHp()` + particle เขียว) — เพิ่ม `DualFighter.getHp()/isFullHp()/restoreHp()` และ `MAX_HP` constant
+- **Bullet visibility:** เพิ่มความสว่าง/คอนทราสต์ของกระสุน (body สีสดขึ้น + แกนกลางเกือบขาว) และขยาย glow ให้กระสุนอ่านง่ายขึ้นบนพื้นหลังมืด
+
 ### v3.4 — Kill Progress Gauge, DualFighter Damage Color & HUD Polish
 - **Kill progress gauge:** `world.killProgress` นับฆ่า 0→100 → `player.gainLife()` แล้วรีเซ็ต; HUD แสดง `♥ +1 xx/100` + bar สีชมพูระหว่าง LIVES และ buff rows; `world.onEnemyKilled()` consolidate kill logic ทุกจุด (bullet hit, body collision)
 - **DualFighter damage color:** HP=2 → สีเขียว, HP=1 → สีแดงทั้ง body/wing/cockpit/glow/pips; explosion ก็ใช้สีตาม HP ขณะตาย
@@ -1212,4 +1218,4 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 
 ---
 
-*GALAGA OOP Edition — Java Arcade Project (~3,359 lines across 25 source files)*
+*GALAGA OOP Edition — Java Arcade Project (~3,827 lines across 35 source files)*

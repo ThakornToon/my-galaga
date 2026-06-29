@@ -78,13 +78,20 @@ public class Player extends GameObject {
 
     /** Add a DualFighter alongside the player */
     public void awardDualFighter() {
-        // Max 2 dual fighters (one on each side)
-        if (dualFighters.size() >= 2) return;
-        // Place on the side that doesn't have one yet
-        boolean hasLeft  = dualFighters.stream().anyMatch(d -> d.getOffsetX() < 0);
-        boolean hasRight = dualFighters.stream().anyMatch(d -> d.getOffsetX() > 0);
-        double offsetX   = (!hasLeft) ? -50 : 50;
-        DualFighter df   = new DualFighter(world, offsetX);
+        // Already at the max number of wingmen (one per side): don't waste the
+        // reward — repair the most-damaged wingman that isn't at full HP instead.
+        if (dualFighters.size() >= 2) {
+            DualFighter weakest = null;
+            for (DualFighter df : dualFighters)
+                if (!df.isFullHp() && (weakest == null || df.getHp() < weakest.getHp()))
+                    weakest = df;
+            if (weakest != null) weakest.restoreHp();
+            return;
+        }
+        // Place on the side that doesn't have one yet.
+        boolean hasLeft = dualFighters.stream().anyMatch(d -> d.getOffsetX() < 0);
+        double offsetX  = hasLeft ? 50 : -50;
+        DualFighter df  = new DualFighter(world, offsetX);
         dualFighters.add(df);
         world.add(df);
     }

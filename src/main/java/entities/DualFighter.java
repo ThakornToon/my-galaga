@@ -16,7 +16,8 @@ import java.awt.*;
 public class DualFighter extends GameObject {
 
     private final double offsetX;   // horizontal offset from player centre
-    private int hp = 2;
+    private static final int MAX_HP = 2;
+    private int hp = MAX_HP;
     private boolean hasShield = false;
     private double shieldTimer = 0;
 
@@ -34,6 +35,16 @@ public class DualFighter extends GameObject {
     }
 
     public double getOffsetX() { return offsetX; }
+
+    public int     getHp()     { return hp; }
+    public boolean isFullHp()  { return hp >= MAX_HP; }
+
+    /** Restore to full HP — used when a rescue reward would otherwise be wasted
+     *  because the player already has the maximum number of wingmen. */
+    public void restoreHp() {
+        hp = MAX_HP;
+        world.spawnParticles(x, y, new Color(120, 255, 150), 12, 40, 140, 0.3, 0.7, 2, 4);
+    }
 
     public void applyShield(double duration) {
         hasShield   = true;

@@ -32,8 +32,10 @@ public class Bullet extends GameObject {
         this.special = special;
         this.aoeRadius = aoeRadius;
         this.aoeDamage = aoeDamage;
-        this.colorPrimary = fromPlayer ? new Color(100, 255, 180) : new Color(255, 80, 80);
-        this.colorAccent = fromPlayer ? new Color(0, 200, 120) : new Color(200, 30, 30);
+        // Brighter, higher-contrast tones so bullets read clearly against the
+        // dark playfield: a vivid body with a near-white hot core.
+        this.colorPrimary = fromPlayer ? new Color(120, 255, 170) : new Color(255, 90, 90);
+        this.colorAccent  = fromPlayer ? new Color(225, 255, 235) : new Color(255, 225, 210);
     }
 
     /** Build a player special (explosive) bullet rising at the given speed. */
@@ -69,11 +71,11 @@ public class Bullet extends GameObject {
             g2.fillOval((int) (x - 9), (int) (y - 9), 18, 18);
             return;
         }
-        g2.setColor(new Color(colorPrimary.getRed(), colorPrimary.getGreen(), colorPrimary.getBlue(), 70));
-        g2.fillOval((int) (x - 5), (int) (y - 7), 10, 14);
+        g2.setColor(new Color(colorPrimary.getRed(), colorPrimary.getGreen(), colorPrimary.getBlue(), 120));
+        g2.fillOval((int) (x - 6), (int) (y - 8), 12, 16);
         g2.setColor(colorPrimary);
         g2.fillOval((int) (x - 2), (int) (y - 5), 4, 10);
         g2.setColor(colorAccent);
-        g2.fillOval((int) (x - 1), (int) (y - 3), 2, 6);
+        g2.fillOval((int) (x - 1), (int) (y - 4), 3, 8);
     }
 }
