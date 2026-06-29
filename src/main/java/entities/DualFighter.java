@@ -77,10 +77,8 @@ public class DualFighter extends GameObject {
     }
 
     @Override
-    public void draw(Graphics2D g) {
+    public void draw(Graphics2D g2) {
         if (!alive) return;
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         Color cBody   = (hp <= 1) ? COLOR_BODY_DMG   : COLOR_BODY;
         Color cWing   = (hp <= 1) ? COLOR_WING_DMG   : COLOR_WING;
@@ -129,8 +127,6 @@ public class DualFighter extends GameObject {
             g2.drawOval((int)(x - FW/2 - 8), (int)(y - FH/2 - 8),
                     (int)(FW + 16), (int)(FH + 16));
         }
-
-        g2.dispose();
     }
 
     @Override

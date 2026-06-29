@@ -64,7 +64,6 @@ public class Player extends GameObject {
     public int getShieldCount()         { return shieldTimers.size();              }
     public double getShieldTimer()      { return hasShield() ? Collections.min(shieldTimers) : 0; }
     public double getScoreMultTimer()   { return scoreMultTimer;                   }
-    public boolean isInvulnerable()     { return invulnerable;                     }
     public int getSpecialAmmo()         { return specialAmmo;                      }
 
     /** Award special explosive rounds (called when a boss is defeated). */
@@ -90,8 +89,6 @@ public class Player extends GameObject {
         world.add(df);
     }
 
-    public List<DualFighter> getDualFighters() { return dualFighters; }
-
     public void applyPowerUp(PowerUp.Type type) {
         switch (type) {
             case DOUBLE_SHOT -> { powerUp = PowerUpState.DOUBLE; powerUpTimer = DOUBLE_DURATION; }
@@ -101,7 +98,7 @@ public class Player extends GameObject {
                 shieldTimers.add(SHIELD_DURATION);
                 for (DualFighter df : dualFighters) df.applyShield(SHIELD_DURATION);
             }
-            case SCORE_MULT  -> { world.scoreMultiplier = 2; scoreMultTimer = SCORE_MULT_DURATION; }
+            case SCORE_MULT  -> { world.setScoreMultiplier(2); scoreMultTimer = SCORE_MULT_DURATION; }
         }
     }
 
@@ -117,7 +114,7 @@ public class Player extends GameObject {
         world.spawnExplosion(x, y, COL_BODY);
         if (lives <= 0) {
             destroy();
-            world.gameOver = true;
+            world.endGame();
         }
     }
 
@@ -140,7 +137,7 @@ public class Player extends GameObject {
         shieldTimers.removeIf(t -> t <= 0);
         if (scoreMultTimer > 0) {
             scoreMultTimer -= dt;
-            if (scoreMultTimer <= 0) world.scoreMultiplier = 1;
+            if (scoreMultTimer <= 0) world.setScoreMultiplier(1);
         }
         if (shootCooldown > 0) shootCooldown -= dt;
 
@@ -149,7 +146,7 @@ public class Player extends GameObject {
             specialFirePending = false;
             if (specialAmmo > 0) {
                 specialAmmo--;
-                double radius = world.width / 4.0;   // 1/4 of screen width
+                double radius = world.width / 3.0;   // 1/3 of screen width
                 world.add(Bullet.special(world, x, y - 20, -400, radius, 20));
             }
         }
@@ -177,11 +174,8 @@ public class Player extends GameObject {
     }
 
     @Override
-    public void draw(Graphics2D g) {
+    public void draw(Graphics2D g2) {
         if (invulnerable && (int)(invulnerableTimer * 10) % 2 == 0) return;
-
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         // Engine exhaust glow
         float[] frac  = {0f, 1f};
@@ -220,7 +214,6 @@ public class Player extends GameObject {
             g2.drawOval((int)(x - w/2 - 8), (int)(y - h/2 - 8),
                     (int)(w + 16), (int)(h + 16));
         }
-        g2.dispose();
     }
 
     private void drawWing(Graphics2D g2, int side) {

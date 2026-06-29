@@ -71,7 +71,7 @@ public class WaveManager implements Updatable {
 
     public WaveManager(World world) {
         this.world = world;
-        buildWave(world.wave);
+        buildWave(world.getWave());
     }
 
     // ── Wave definition ───────────────────────────────────────────────────────
@@ -144,12 +144,12 @@ public class WaveManager implements Updatable {
         int aDive  = (int) Math.round((cols - 3) * frac);   // mixB lane1 (row3)
         int aShoot = (int) Math.round(4          * frac);   // row4
 
-        addMixedConvoy(b, t,        "DRONE", 0, aDrone, 0, "ORBIT", 1, aOrbit, 1, kp + "mixA");
+        addMixedConvoy(b, t, "DRONE",0, aDrone, 0, "ORBIT", 1, aOrbit, 1, kp + "mixA");
         // 3.6s apart so each mixed pair finishes its symmetric entry before the
         // next colour pair sweeps in (otherwise all four colours overlap
         // mid-screen and the entry reads as clutter).
         t += 3.6;
-        addMixedConvoy(b, t,        "WAVE",  2, aWave,  1, "DIVE",  3, aDive,  2, kp + "mixB");
+        addMixedConvoy(b, t, "WAVE", 2, aWave,  1, "DIVE",  3, aDive,  2, kp + "mixB");
         if (wave >= 5 && aShoot > 0) {
             t += 3.6;
             addGroup(b, t, "SHOOTER", 4, aShoot, 2, kp + "g4");
@@ -200,7 +200,7 @@ public class WaveManager implements Updatable {
     // ── Update ────────────────────────────────────────────────────────────────
     @Override
     public void update(double dt) {
-        if (world.gameOver) return;
+        if (world.isGameOver()) return;
         spawnTimer += dt;
 
         maybeReinforceBoss(dt);
@@ -222,8 +222,8 @@ public class WaveManager implements Updatable {
                 if (batchIndex < batches.size() - 1) {
                     loadBatch(++batchIndex);     // next batch of THIS wave
                 } else {
-                    world.wave++;
-                    buildWave(world.wave);       // advance to the next wave
+                    world.advanceWave();
+                    buildWave(world.getWave());  // advance to the next wave
                 }
             }
         }
@@ -252,7 +252,8 @@ public class WaveManager implements Updatable {
      */
     private double reinforceInterval(Boss boss) {
         double cd = 4.0;
-        if (world.wave > 5) cd -= 0.5 * ((world.wave - 5) / 5);   // integer step per 5 waves
+        int wave = world.getWave();
+        if (wave > 5) cd -= 0.5 * ((wave - 5) / 5);   // integer step per 5 waves
         double hpFrac = (double) boss.getHp() / boss.getMaxHp();
         if (hpFrac <= 0.40) cd -= 1.0;
         return Math.max(1.0, cd);
@@ -314,7 +315,7 @@ public class WaveManager implements Updatable {
         if ("BOSS".equals(se.type())) {
             Boss boss = new Boss(world);
             boss.setFormationTarget(formX, formY);
-            boss.setWave(world.wave);
+            boss.setWave(world.getWave());
             applySpeedMult(boss);
             world.add(boss);
             return;
@@ -330,9 +331,9 @@ public class WaveManager implements Updatable {
         // shared stream straight into its place (Galaga-style).
         String key = se.groupKey();
         boolean mixed = key.contains("mix");
-        ConvoyDecision cd = convoyCache.computeIfAbsent(key, k -> makeConvoyDecision(world.wave, mixed));
+        ConvoyDecision cd = convoyCache.computeIfAbsent(key, k -> makeConvoyDecision(mixed));
 
-        EntryPath path = buildMemberPath(cd, se.col(), se.lane(), formX, formY);
+        EntryPath path = buildMemberPath(cd, se.lane(), formX, formY);
 
         // ── Follow-the-leader ─────────────────────────────────────────────────
         // Every member flies the SAME path from the very start (off-screen);
@@ -345,8 +346,8 @@ public class WaveManager implements Updatable {
         boolean willSwoop = world.rng().nextDouble() < 0.20;
         double swoopX = world.width / 2.0, swoopY = world.height - 80;
         if (willSwoop) {
-            List<Player> ps = world.allOf(Player.class);
-            if (!ps.isEmpty()) { swoopX = ps.get(0).getX(); swoopY = ps.get(0).getY(); }
+            Player ps = world.player();
+            if (ps != null) { swoopX = ps.getX(); swoopY = ps.getY(); }
         }
 
         // ── Create enemy ──────────────────────────────────────────────────────
@@ -354,14 +355,14 @@ public class WaveManager implements Updatable {
         EntryPath.Pt startPt = path.points.get(startIndex);
         Enemy enemy = makeEnemy(se, startPt.x(), startPt.y());
         enemy.setFormationTarget(formX, formY);
-        enemy.setWave(world.wave);
+        enemy.setWave(world.getWave());
         applySpeedMult(enemy);
         enemy.setupEntryPath(path, startIndex, willSwoop, swoopX, swoopY);
         world.add(enemy);
     }
 
     // ── Convoy decision factory ───────────────────────────────────────────────
-    private ConvoyDecision makeConvoyDecision(int wave, boolean mixed) {
+    private ConvoyDecision makeConvoyDecision(boolean mixed) {
         ConvoyFormat fmt;
         if (mixed) {
             // Mixed convoys: each lane is a clean single-file stream, and the two
@@ -386,7 +387,7 @@ public class WaveManager implements Updatable {
      * stream and only the final settle segment diverges — straight into its own
      * slot. {@code lane} laterally offsets the 2nd colour stream of a mixed convoy.
      */
-    private EntryPath buildMemberPath(ConvoyDecision cd, int col, int lane,
+    private EntryPath buildMemberPath(ConvoyDecision cd, int lane,
                                       double formX, double formY) {
         int W = world.width, H = world.height;
         boolean fb = cd.fromBottom();
@@ -396,29 +397,29 @@ public class WaveManager implements Updatable {
         boolean left = (lane == 0) ? cd.fromLeft() : !cd.fromLeft();
         return switch (cd.format()) {
             case ONE_ROW_ONE_SIDE ->
-                    EntryPath.buildFigure8(left, fb, formX, formY, W, H, 0, false);
+                    EntryPath.buildFigure8(left, fb, formX, formY, W, H, false);
             // Crossover: sweep across from the entry corner, loop on the FAR
             // side, then settle — still a full loop flourish, just mirrored.
             case ONE_ROW_CROSSOVER ->
-                    EntryPath.buildFigure8(left, fb, formX, formY, W, H, 0, true);
+                    EntryPath.buildFigure8(left, fb, formX, formY, W, H, true);
         };
     }
 
     // ── Enemy factory ─────────────────────────────────────────────────────────
     private Enemy makeEnemy(SpawnEntry se, double sx, double sy) {
         return switch (se.type()) {
-            case "DRONE"   -> new Drone(world,         sx, sy, se.row(), se.col());
-            case "ORBIT"   -> new OrbitBug(world,      sx, sy, se.row(), se.col());
-            case "WAVE"    -> new WaveBug(world,        sx, sy, se.row(), se.col());
-            case "DIVE"    -> new DiveBug(world,        sx, sy, se.row(), se.col());
-            case "SHOOTER" -> new ShooterEnemy(world,  sx, sy, se.row(), se.col());
+            case "DRONE"   -> new Drone(world,        sx, sy);
+            case "ORBIT"   -> new OrbitBug(world,     sx, sy);
+            case "WAVE"    -> new WaveBug(world,       sx, sy);
+            case "DIVE"    -> new DiveBug(world,       sx, sy);
+            case "SHOOTER" -> new ShooterEnemy(world, sx, sy);
             default        -> throw new IllegalArgumentException("Unknown: " + se.type());
         };
     }
 
     // ── Speed multiplier ──────────────────────────────────────────────────────
     private void applySpeedMult(Enemy enemy) {
-        int w = world.wave;
+        int w = world.getWave();
         double mult = (enemy instanceof Drone || enemy instanceof Boss)
                 ? 1.0  + 0.05 * ((w - 1) / 5)
                 : 0.75 + 0.10 * ((w - 1) / 2);

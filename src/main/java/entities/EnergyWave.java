@@ -15,6 +15,7 @@ public class EnergyWave extends GameObject {
     private static final int   RING_COUNT  = 14;   // number of arcs
     private static final double ARC_SPACING = 18;  // px between rings
     private static final double CONE_HALF_ANGLE = Math.toRadians(35); // half-width of cone
+    private static final double CONE_TAN        = Math.tan(CONE_HALF_ANGLE);
     private static final double EXPAND_SPEED    = 200; // px/sec
     private static final double MAX_REACH       = RING_COUNT * ARC_SPACING + 60;
 
@@ -35,17 +36,15 @@ public class EnergyWave extends GameObject {
         // Check player hit: player must be below origin AND within X cone
         if (!hasHit) {
             double currentReach = progress * MAX_REACH;
-            double coneWidthAtReach = Math.tan(CONE_HALF_ANGLE) * currentReach;
-            for (Player p : world.allOf(Player.class)) {
-                if (!p.isAlive()) continue;
+            Player p = world.player();
+            if (p != null) {
                 double relY = p.getY() - cy;
                 double relX = Math.abs(p.getX() - cx);
-                double coneW = Math.tan(CONE_HALF_ANGLE) * relY;
+                double coneW = CONE_TAN * relY;
                 // Player is below origin, within cone's depth, within X span
                 if (relY > 0 && relY <= currentReach && relX <= coneW + 20) {
                     p.absorbHit();
                     hasHit = true;
-                    break;
                 }
             }
         }
@@ -53,10 +52,8 @@ public class EnergyWave extends GameObject {
     }
 
     @Override
-    public void draw(Graphics2D g) {
+    public void draw(Graphics2D g2) {
         if (!alive) return;
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         double currentReach = progress * MAX_REACH;
 
@@ -69,7 +66,7 @@ public class EnergyWave extends GameObject {
             if (alpha <= 0) continue;
 
             // Cone width at this ring
-            double halfW = Math.tan(CONE_HALF_ANGLE) * ringDist;
+            double halfW = CONE_TAN * ringDist;
             double arcX  = cx - halfW;
             double arcY  = cy + ringDist - halfW * 0.4;
             double arcW  = halfW * 2;
@@ -95,8 +92,6 @@ public class EnergyWave extends GameObject {
         g2.setColor(new Color(200, 230, 255, (int)(beamAlpha * 160)));
         g2.setStroke(new BasicStroke(1.5f));
         g2.draw(new Line2D.Double(cx, cy, cx, cy + currentReach * 0.6));
-
-        g2.dispose();
     }
 
     @Override

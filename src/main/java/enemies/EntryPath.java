@@ -17,17 +17,14 @@ public class EntryPath {
     private static final int SAMPLES = 160;
 
     public final List<Pt> points;
-    /** Index gap between consecutive convoy members */
-    public final int followGap;
 
     // ── Arc-length table (for constant-speed, interpolated traversal) ─────────
     /** cum[i] = total polyline distance from points[0] up to points[i] */
     private final double[] cum;
     private final double   totalLen;
 
-    public EntryPath(List<Pt> points, int followGap) {
-        this.points    = points;
-        this.followGap = followGap;
+    EntryPath(List<Pt> points) {
+        this.points = points;
 
         int n = points.size();
         cum = new double[Math.max(1, n)];
@@ -41,10 +38,10 @@ public class EntryPath {
     }
 
     /** Total arc length of the path in pixels. */
-    public double length() { return totalLen; }
+    double length() { return totalLen; }
 
     /** Arc-length fraction [0,1] at which raw waypoint {@code i} sits. */
-    public double fractionAtIndex(int i) {
+    double fractionAtIndex(int i) {
         if (totalLen <= 1e-9 || points.isEmpty()) return 0;
         i = Math.max(0, Math.min(i, points.size() - 1));
         return cum[i] / totalLen;
@@ -56,7 +53,7 @@ public class EntryPath {
      * distance (not by raw index), advancing {@code f} at a constant rate yields
      * a constant pixel speed regardless of how densely waypoints are packed.
      */
-    public Pt atFraction(double f) {
+    Pt atFraction(double f) {
         if (points.isEmpty()) return new Pt(0, 0);
         if (f <= 0 || totalLen <= 1e-9) return points.get(0);
         if (f >= 1) return points.get(points.size() - 1);
@@ -98,7 +95,6 @@ public class EntryPath {
      * @param formY      formation slot Y
      * @param W          screen width
      * @param H          screen height
-     * @param rowOffset  lateral offset for the 2nd row of a parallel convoy (px)
      * @param loopFar    place the loop on the side OPPOSITE the entry corner, so
      *                   the lead-in sweeps clear across the screen before looping
      *                   (a "crossover" entry that still performs the loop flourish)
@@ -106,21 +102,19 @@ public class EntryPath {
     public static EntryPath buildFigure8(boolean fromLeft, boolean fromBottom,
                                          double formX,   double formY,
                                          int W,          int H,
-                                         double rowOffset, boolean loopFar) {
+                                         boolean loopFar) {
         final int N = 220;
         List<Pt> pts = new ArrayList<>(N);
 
         double side   = fromLeft ? -1 : 1;       // entry corner side
         double lside  = loopFar ? -side : side;  // side the loop flourish sits on
-        // Lateral row offset (perpendicular to travel) for parallel convoys.
-        double rowDx  = side * rowOffset;
 
         // Off-screen start corner.
-        double startX = (fromLeft ? -70 : W + 70) + rowDx;
+        double startX = fromLeft ? -70 : W + 70;
         double startY = fromBottom ? H + 70 : -70;
 
         // Loop flourish: a circle in the upper-mid playfield on the loop side.
-        double loopCx = W / 2.0 + lside * 75 + rowDx;
+        double loopCx = W / 2.0 + lside * 75;
         double loopCy = H * 0.40;
         double loopR  = 86;
         double sweepDir = -lside;                // loop direction follows loop side
@@ -146,8 +140,8 @@ public class EntryPath {
 
         // Settle: depart the junction ALONG the same tangent (C1 join), fan in.
         Pt ex1 = new Pt(junction.x() + tanX * 120, junction.y() + tanY * 120);
-        Pt ex2 = new Pt(formX + rowDx, formY - tanY * 60);
-        Pt slot = new Pt(formX + rowDx, formY);
+        Pt ex2 = new Pt(formX, formY - tanY * 60);
+        Pt slot = new Pt(formX, formY);
 
         int n1 = (int)(N * 0.34), n2 = (int)(N * 0.40), n3 = N - n1 - n2;
         for (int i = 0; i < n1; i++)
@@ -162,7 +156,7 @@ public class EntryPath {
         // Force last waypoint exactly on the formation slot.
         pts.set(pts.size() - 1, slot);
 
-        return new EntryPath(pts, 12);
+        return new EntryPath(pts);
     }
 
     /** Cubic Bézier point at parameter t. */
@@ -178,7 +172,7 @@ public class EntryPath {
      * Straight dive at snapshotted player pos → exits bottom → Bézier arc
      * back up to formation.
      */
-    public static EntryPath buildSwoop(double startX, double startY,
+    static EntryPath buildSwoop(double startX, double startY,
                                        double playerX, double playerY,
                                        double formX,  double formY,
                                        int W, int H) {
@@ -221,6 +215,6 @@ public class EntryPath {
         }
         pts.set(pts.size() - 1, new Pt(formX, formY));
 
-        return new EntryPath(pts, 1);
+        return new EntryPath(pts);
     }
 }

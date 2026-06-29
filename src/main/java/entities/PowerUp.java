@@ -40,9 +40,7 @@ public class PowerUp extends GameObject {
     }
 
     @Override
-    public void draw(Graphics2D g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    public void draw(Graphics2D g2) {
         g2.rotate(Math.toRadians(rotation), x, y);
         g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 55));
         g2.fillOval((int) (x - w / 2 - 4), (int) (y - h / 2 - 4), (int) (w + 8), (int) (h + 8));
@@ -62,6 +60,5 @@ public class PowerUp extends GameObject {
         g2.setFont(new Font("Monospaced", Font.BOLD, 10));
         FontMetrics fm = g2.getFontMetrics();
         g2.drawString(label, (int) (x - fm.stringWidth(label) / 2.0), (int) (y + fm.getAscent() / 2.0 - 1));
-        g2.dispose();
     }
 }

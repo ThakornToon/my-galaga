@@ -31,14 +31,11 @@ public class BlastRing extends GameObject {
     }
 
     @Override
-    public void draw(Graphics2D g) {
+    public void draw(Graphics2D g2) {
         double f = Math.max(0, life / maxLife);          // 1 → 0
         // Ring snaps to the true radius instantly then fades, so the player can
         // read exactly how far the blast reached.
         double r = radius * (0.82 + 0.18 * (1 - f));      // quick settle to full R
-
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         // Faint filled disc
         g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), (int) (f * 45)));
@@ -52,7 +49,5 @@ public class BlastRing extends GameObject {
         // Inner white flash early on
         g2.setColor(new Color(255, 255, 255, (int) (f * f * 120)));
         g2.fill(new Ellipse2D.Double(x - r * 0.35, y - r * 0.35, r * 0.7, r * 0.7));
-
-        g2.dispose();
     }
 }

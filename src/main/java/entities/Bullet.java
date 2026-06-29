@@ -56,9 +56,7 @@ public class Bullet extends GameObject {
     }
 
     @Override
-    public void draw(Graphics2D g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    public void draw(Graphics2D g2) {
         if (special) {
             // Sprite scaled ×3 to match the enlarged 48px hitbox.
             double pulse = 1 + 0.25 * Math.sin(anim * 18);
@@ -69,7 +67,6 @@ public class Bullet extends GameObject {
             g2.fillOval((int) (x - 21), (int) (y - 21), 42, 42);
             g2.setColor(Color.WHITE);
             g2.fillOval((int) (x - 9), (int) (y - 9), 18, 18);
-            g2.dispose();
             return;
         }
         g2.setColor(new Color(colorPrimary.getRed(), colorPrimary.getGreen(), colorPrimary.getBlue(), 70));
@@ -78,6 +75,5 @@ public class Bullet extends GameObject {
         g2.fillOval((int) (x - 2), (int) (y - 5), 4, 10);
         g2.setColor(colorAccent);
         g2.fillOval((int) (x - 1), (int) (y - 3), 2, 6);
-        g2.dispose();
     }
 }

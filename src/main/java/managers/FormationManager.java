@@ -24,7 +24,7 @@ public class FormationManager implements Updatable {
 
     @Override
     public void update(double dt) {
-        double speed = 40 + world.wave * 5;
+        double speed = 40 + world.getWave() * 5;
         if (goRight) offsetX += speed * dt;
         else offsetX -= speed * dt;
 
@@ -34,7 +34,7 @@ public class FormationManager implements Updatable {
         world.setFormationOffset(offsetX);
 
         diveTimer -= dt;
-        double interval = Math.max(1.0, 2.5 - world.wave * 0.2);
+        double interval = Math.max(1.0, 2.5 - world.getWave() * 0.2);
         if (diveTimer <= 0) {
             diveTimer = interval;
             triggerDive();

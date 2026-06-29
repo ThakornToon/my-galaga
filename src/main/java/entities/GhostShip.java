@@ -34,13 +34,10 @@ public class GhostShip extends GameObject {
     }
 
     @Override
-    public void draw(Graphics2D g) {
+    public void draw(Graphics2D g2) {
         if (!alive) return;
         // Slow blink — fast blink made the ghost nearly invisible
         if ((int)(blinkTimer * 3) % 2 == 0) return;
-
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         // Golden capture aura
         float auraPulse = (float)(0.5 + 0.5 * Math.sin(blinkTimer * 6));
@@ -71,8 +68,6 @@ public class GhostShip extends GameObject {
         // Cockpit
         g2.setColor(new Color(150, 220, 255, 160));
         g2.fillOval((int)(x - 6), (int)(y - H/2 + 3), 12, 10);
-
-        g2.dispose();
     }
 
     @Override

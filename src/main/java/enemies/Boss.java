@@ -122,9 +122,7 @@ public class Boss extends Enemy {
     }
 
     @Override
-    public void draw(Graphics2D g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    public void draw(Graphics2D g2) {
         g2.setColor(new Color(colorPrimary.getRed(), colorPrimary.getGreen(),
                 colorPrimary.getBlue(), 60));
         g2.fillOval((int)(x - w/2 - 12), (int)(y - h/2 - 12),
@@ -165,6 +163,5 @@ public class Boss extends Enemy {
         g2.setColor(hpCol.brighter());
         g2.setStroke(new BasicStroke(1f));
         g2.drawRoundRect((int)(x - w/2), (int)(y + h/2 + 8), (int)w, 10, 4, 4);
-        g2.dispose();
     }
 }

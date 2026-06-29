@@ -11,7 +11,9 @@ public class Particle implements Updatable, Drawable {
     private final Color color;
     private double lifetime, maxLifetime;
     private final double size;
-    public boolean alive = true;
+    private boolean alive = true;
+
+    public boolean isAlive() { return alive; }
 
     public Particle(double x, double y, double vx, double vy, Color color, double life, double size) {
         this.x = x;

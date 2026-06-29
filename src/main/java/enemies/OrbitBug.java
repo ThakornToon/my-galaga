@@ -15,7 +15,7 @@ public class OrbitBug extends Enemy {
     private static final double LOOP_RADIUS = 180;
     private static final double ORBIT_SPEED = 320;
 
-    public OrbitBug(World world, double x, double y, int row, int col) {
+    public OrbitBug(World world, double x, double y) {
         super(world, x, y, 30, 26, 2, 150, 2.5,
                 new Color(50, 200, 255), new Color(0, 120, 200), new Color(150, 255, 255));
     }
@@ -36,7 +36,7 @@ public class OrbitBug extends Enemy {
         if (swoopActive) { runSwoop(dt); return; }
 
         if (inFormation) {
-            moveTowardsFormation(dt,
+            moveTowardsFormation(
                     Math.cos(patternTimer * 1.5) * 25 * speedMult,
                     Math.sin(patternTimer * 1.5) * 10 * speedMult);
             return;
@@ -76,9 +76,7 @@ public class OrbitBug extends Enemy {
     @Override protected void updateShooting(double dt) {}
 
     @Override
-    public void draw(Graphics2D g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    public void draw(Graphics2D g2) {
         drawGlow(g2);
         g2.setColor(colorSecondary);
         g2.fillOval((int)(x-w/2+4),(int)(y-h/2+4),(int)(w-8),(int)(h-8));
@@ -90,6 +88,5 @@ public class OrbitBug extends Enemy {
             g2.setColor(colorAccent);
             g2.fillOval((int)(x+Math.cos(a)*w/2)-3,(int)(y+Math.sin(a)*h/2)-3,6,6);
         }
-        g2.dispose();
     }
 }

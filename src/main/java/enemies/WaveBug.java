@@ -13,7 +13,7 @@ public class WaveBug extends Enemy {
     private static final double WAVE_PERIOD    = 3.5;
     private static final double DIVE_SPEED     = 220;
 
-    public WaveBug(World world, double x, double y, int row, int col) {
+    public WaveBug(World world, double x, double y) {
         super(world, x, y, 30, 26, 2, 160, 2.5,
                 new Color(255, 180, 0), new Color(200, 120, 0), new Color(255, 240, 100));
     }
@@ -53,9 +53,7 @@ public class WaveBug extends Enemy {
     }
 
     @Override
-    public void draw(Graphics2D g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    public void draw(Graphics2D g2) {
         drawGlow(g2);
         int[] lx={iX(),iX()-(int)(w/2),iX()-(int)(w/3),iX()-2};
         int[] ly={iY()-(int)(h/4),iY()-(int)(h/2),iY()+(int)(h/2),iY()+2};
@@ -66,7 +64,6 @@ public class WaveBug extends Enemy {
         g2.setColor(colorSecondary);
         g2.fillOval(iX()-5,iY()-(int)(h/2),10,(int)h);
         g2.setColor(colorAccent); g2.fillOval(iX()-3,iY()-4,6,8);
-        g2.dispose();
     }
     private int iX() { return (int)x; }
     private int iY() { return (int)y; }

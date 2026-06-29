@@ -93,7 +93,7 @@ public class CollisionManager implements Updatable {
             for (Player p : players) {
                 if (!p.isAlive()) continue;
                 if (e.getBounds().intersects(p.getBounds())) {
-                    world.score += e.getScoreValue() / 2;
+                    world.addScore(e.getScoreValue() / 2);
                     world.onEnemyKilled();
                     world.spawnExplosion(e.getX(), e.getY(), e.getColorPrimary());
                     e.destroy();

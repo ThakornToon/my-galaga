@@ -17,13 +17,12 @@ public class World {
     public final int width, height;
     public static final int KILLS_PER_LIFE = 100;
 
-    public int score           = 0;
-    public int wave            = 1;
-    public int kills           = 0;
-    public int killProgress    = 0;   // kills toward next bonus life (0–99)
-    public int scoreMultiplier = 1;
-    public boolean gameOver    = false;
-    public double totalTime    = 0;
+    private int score           = 0;
+    private int wave            = 1;
+    private int kills           = 0;
+    private int killProgress    = 0;   // kills toward next bonus life (0–99)
+    private int scoreMultiplier = 1;
+    private boolean gameOver    = false;
 
     private double formationOffset = 0;
     // Plain ArrayLists: the game loop runs on a single thread (see GamePanel),
@@ -34,6 +33,11 @@ public class World {
     private final List<GameObject> pendingAdd = new ArrayList<>();
     private final List<Particle>   particles  = new ArrayList<>();
     private final Random rng = new Random();
+    // Single player, cached on add. Many hot paths (every enemy's shooting,
+    // EnergyWave, aimed bullets, the HUD) need the player every frame; looking it
+    // up via allOf(Player.class) allocated a fresh list + scanned all objects each
+    // time. The cache turns those into a single field read.
+    private Player player;
 
     public World(int w, int h) {
         this.width  = w;
@@ -43,7 +47,27 @@ public class World {
     public void setFormationOffset(double offset) { this.formationOffset = offset; }
     public double getFormationOffset()             { return formationOffset;        }
 
-    public void add(GameObject go) { pendingAdd.add(go); }
+    // ── Game-state reads ────────────────────────────────────────────────────────
+    public int     getScore()           { return score;           }
+    public int     getWave()            { return wave;            }
+    public int     getKills()           { return kills;           }
+    public int     getKillProgress()    { return killProgress;    }
+    public int     getScoreMultiplier() { return scoreMultiplier; }
+    public boolean isGameOver()         { return gameOver;        }
+
+    // ── Game-state mutations (intention-revealing) ──────────────────────────────
+    public void addScore(int points)         { score += points;        }
+    public void advanceWave()                { wave++;                  }
+    public void setScoreMultiplier(int mult) { scoreMultiplier = mult; }
+    public void endGame()                    { gameOver = true;        }
+
+    public void add(GameObject go) {
+        if (go instanceof Player p) player = p;
+        pendingAdd.add(go);
+    }
+
+    /** The live player, or null once it has been destroyed. */
+    public Player player() { return (player != null && player.isAlive()) ? player : null; }
 
     public void flush() {
         objects.addAll(pendingAdd);
@@ -58,6 +82,14 @@ public class World {
         for (GameObject go : objects)
             if (type.isInstance(go) && go.isAlive()) result.add(type.cast(go));
         return result;
+    }
+
+    /** Count of live objects of a type, without allocating a list (HUD/checks). */
+    public int countOf(Class<?> type) {
+        int n = 0;
+        for (GameObject go : objects)
+            if (type.isInstance(go) && go.isAlive()) n++;
+        return n;
     }
 
     public void spawnParticles(double x, double y, Color color, int count,
@@ -102,8 +134,8 @@ public class World {
         killProgress++;
         if (killProgress >= KILLS_PER_LIFE) {
             killProgress = 0;
-            List<Player> ps = allOf(Player.class);
-            if (!ps.isEmpty()) ps.get(0).gainLife();
+            Player p = player();
+            if (p != null) p.gainLife();
         }
     }
 

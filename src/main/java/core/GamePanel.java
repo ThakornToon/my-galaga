@@ -21,7 +21,7 @@ import java.awt.image.BufferStrategy;
 import java.util.concurrent.locks.LockSupport;
 
 public class GamePanel extends Canvas {
-    public static final int W = 600, H = 760;
+    private static final int W = 600, H = 760;
 
     private volatile World world;
     private volatile Player player;          // cached so key input never walks world lists
@@ -199,14 +199,13 @@ public class GamePanel extends Canvas {
         stars.update(dt);
 
         if (screen == Screen.PLAYING) {
-            world.totalTime += dt;
             for (GameObject go : world.all()) if (go.isAlive()) go.update(dt);
-            world.particles().removeIf(p -> { p.update(dt); return !p.alive; });
+            world.particles().removeIf(p -> { p.update(dt); return !p.isAlive(); });
             formation.update(dt);
             waves.update(dt);
             collisions.update(dt);
             world.flush();
-            if (world.gameOver) { screen = Screen.GAME_OVER; gameOverTimer = 0; SoundManager.playBgm(SoundManager.BGM_GAME_OVER); }
+            if (world.isGameOver()) { screen = Screen.GAME_OVER; gameOverTimer = 0; SoundManager.playBgm(SoundManager.BGM_GAME_OVER); }
         }
         if (screen == Screen.GAME_OVER) gameOverTimer += dt;
     }
@@ -256,6 +255,10 @@ public class GamePanel extends Canvas {
      * coordinates, but this shift places them at the true sub-pixel position so
      * motion no longer snaps to the pixel grid each frame (anti-aliasing renders
      * the fraction). The shift is always < 1px, so it is imperceptible at rest.
+     *
+     * {@code gg} is each object's own isolated, anti-aliased (inherited from the
+     * back-buffer set up in {@link #renderScene}) graphics and is disposed here,
+     * so the object's own draw() needs no create()/setRenderingHint/dispose.
      */
     private void drawSub(Graphics2D g2, GameObject o) {
         Graphics2D gg = (Graphics2D) g2.create();
@@ -418,8 +421,7 @@ public class GamePanel extends Canvas {
     // ── Per-type enemy preview draws (match actual game sprites) ───────────────
 
     private void drawPreviewEnemy(Graphics2D g2, int x, int y, int type, double t) {
-        Graphics2D g = (Graphics2D) g2.create();
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g = (Graphics2D) g2.create();   // isolate from the menu's shared graphics
         switch (type) {
             case 0 -> drawPrevDrone(g, x, y);
             case 1 -> drawPrevOrbit(g, x, y, t);
@@ -551,13 +553,13 @@ public class GamePanel extends Canvas {
         String go = "GAME OVER";
         g2.drawString(go, (W-fm.stringWidth(go))/2, H/2-60);
         g2.setColor(new Color(0,200,255)); g2.setFont(new Font("Monospaced",Font.BOLD,22));
-        fm = g2.getFontMetrics(); String sc = "FINAL SCORE: "+world.score;
+        fm = g2.getFontMetrics(); String sc = "FINAL SCORE: "+world.getScore();
         g2.drawString(sc, (W-fm.stringWidth(sc))/2, H/2);
         g2.setColor(new Color(180,180,255)); g2.setFont(new Font("Monospaced",Font.PLAIN,16));
-        fm = g2.getFontMetrics(); String wv = "REACHED WAVE "+world.wave;
+        fm = g2.getFontMetrics(); String wv = "REACHED WAVE "+world.getWave();
         g2.drawString(wv, (W-fm.stringWidth(wv))/2, H/2+30);
         g2.setColor(new Color(255,180,120));
-        fm = g2.getFontMetrics(); String ek = "ENEMIES DESTROYED: "+world.kills;
+        fm = g2.getFontMetrics(); String ek = "ENEMIES DESTROYED: "+world.getKills();
         g2.drawString(ek, (W-fm.stringWidth(ek))/2, H/2+56);
         if (gameOverTimer > 1.5) {
             g2.setColor(new Color(100,255,180,(int)(180+Math.sin(gameOverTimer*4)*60)));

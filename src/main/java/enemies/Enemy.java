@@ -8,14 +8,13 @@ import patterns.BulletPattern;
 import patterns.StraightPattern;
 
 import java.awt.*;
-import java.util.List;
 
 public abstract class Enemy extends GameObject {
     protected final Color colorPrimary, colorSecondary, colorAccent;
     protected int hp, maxHp, scoreValue;
     protected double formationX, formationY;
     protected boolean inFormation = true;
-    protected double diveTimer, divePhase;
+    protected double divePhase;
     protected double patternTimer;
     protected double shootTimer, shootCooldown;
     protected boolean invulnerable;
@@ -73,7 +72,6 @@ public abstract class Enemy extends GameObject {
         if (bonus > 0) { hp += bonus; maxHp += bonus; }
     }
     public boolean isInFormation() { return inFormation; }
-    public boolean isInEntryPath() { return inEntryPath; }
     public int  getScoreValue()    { return scoreValue; }
     public void setSpeedMult(double m) { speedMult = m; }
 
@@ -104,7 +102,6 @@ public abstract class Enemy extends GameObject {
     public void triggerDive() {
         if (inEntryPath) return;
         inFormation = false;
-        diveTimer   = 0;
         divePhase   = 0;
     }
 
@@ -129,7 +126,7 @@ public abstract class Enemy extends GameObject {
             double py = u*u*u*y   + 3*u*u*t*cp1y + 3*u*t*t*cp2y + t*t*t*ty;
             pts.add(new EntryPath.Pt(px, py));
         }
-        returnPath  = new EntryPath(pts, 1);
+        returnPath  = new EntryPath(pts);
         returnT     = 0.0;
     }
 
@@ -140,7 +137,7 @@ public abstract class Enemy extends GameObject {
         if (hp <= 0) {
             onDeath();
             world.spawnExplosion(x, y, colorPrimary);
-            world.score += scoreValue * world.scoreMultiplier;
+            world.addScore(scoreValue * world.getScoreMultiplier());
             world.onEnemyKilled();
             world.maybeDropPowerUp(x, y);
             destroy();
@@ -157,7 +154,7 @@ public abstract class Enemy extends GameObject {
     }
 
     // ── Formation snap ───────────────────────────────────────────────────────
-    protected void moveTowardsFormation(double dt, double extraVx, double extraVy) {
+    protected void moveTowardsFormation(double extraVx, double extraVy) {
         double tx = formationX + world.getFormationOffset();
         double ty = formationY;
         vx = (tx - x) * 5 + extraVx;
@@ -169,8 +166,7 @@ public abstract class Enemy extends GameObject {
         for (Bullet b : p.createBullets(world, x, y, false)) world.add(b);
     }
     protected Player findPlayer() {
-        List<Player> ps = world.allOf(Player.class);
-        return ps.isEmpty() ? null : ps.get(0);
+        return world.player();
     }
     protected void drawGlow(Graphics2D g2) {
         g2.setColor(new Color(colorPrimary.getRed(), colorPrimary.getGreen(),
@@ -195,7 +191,6 @@ public abstract class Enemy extends GameObject {
         }
 
         divePhase += dt;
-        if (!inFormation) diveTimer += dt;
         updateAI(dt);
         applyVelocity(dt);
         updateShooting(dt);
@@ -291,8 +286,6 @@ public abstract class Enemy extends GameObject {
 
     // ── Getters ──────────────────────────────────────────────────────────────
     public Color getColorPrimary()   { return colorPrimary;   }
-    public Color getColorSecondary() { return colorSecondary; }
-    public Color getColorAccent()    { return colorAccent;    }
     public int   getHp()             { return hp;             }
     public int   getMaxHp()          { return maxHp;          }
 }

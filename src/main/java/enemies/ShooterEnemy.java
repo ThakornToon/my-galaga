@@ -25,7 +25,7 @@ public class ShooterEnemy extends Enemy {
     private static final double BOUNCE_SHOT_INTERVAL = 5.0;
     private static final double BOUNCE_SPEED_X       = 140;
 
-    public ShooterEnemy(World world, double x, double y, int row, int col) {
+    public ShooterEnemy(World world, double x, double y) {
         super(world, x, y, 34, 30, 1, 250, 99,
                 new Color(255, 50, 100), new Color(180, 0, 60), new Color(255, 150, 180));
     }
@@ -38,7 +38,6 @@ public class ShooterEnemy extends Enemy {
         if (world.rng().nextDouble() < 0.5 && playerAlive) {
             // Stay in place — fire tractor beam downward toward player
             inFormation = false;
-            diveTimer   = 0;
             divePhase   = 0;
             mode        = Mode.CAPTURE_BEAM;
             beamLength  = 0;
@@ -63,16 +62,17 @@ public class ShooterEnemy extends Enemy {
         if (swoopActive) { runSwoop(dt); return; }
 
         switch (mode) {
-            case IDLE         -> moveTowardsFormation(dt, 0, 0);
+            case IDLE         -> moveTowardsFormation(0, 0);
             case CAPTURE_BEAM -> handleCaptureBeam(dt);
-            case CAPTURE_BOB  -> handleCaptureBob(dt);
+            case CAPTURE_BOB  -> handleCaptureBob();
             case BOUNCER      -> handleBouncer(dt);
         }
 
-        // Tow ghost behind us while alive
+        // Tow ghost behind us while alive. The ghost is in the world's object
+        // list, so the game loop already calls ghost.update(dt) — we only steer
+        // its position here (calling update() again would double its blink rate).
         if (ghost != null && ghost.isAlive()) {
             ghost.setPosition(x, y - GHOST_TRAIL_DIST);
-            ghost.update(dt);
         } else if (ghost != null) {
             ghost = null;
         }
@@ -118,8 +118,8 @@ public class ShooterEnemy extends Enemy {
         }
     }
 
-    private void handleCaptureBob(double dt) {
-        moveTowardsFormation(dt, Math.sin(patternTimer * 1.4) * 45 * speedMult, 0);
+    private void handleCaptureBob() {
+        moveTowardsFormation(Math.sin(patternTimer * 1.4) * 45 * speedMult, 0);
     }
 
     private void handleBouncer(double dt) {
@@ -154,10 +154,7 @@ public class ShooterEnemy extends Enemy {
     @Override protected void updateShooting(double dt) {}
 
     @Override
-    public void draw(Graphics2D g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
+    public void draw(Graphics2D g2) {
         // Tractor beam — drawn first (behind the ship body)
         if (mode == Mode.CAPTURE_BEAM && beamLength > 0) {
             Player target = findPlayer();
@@ -204,7 +201,5 @@ public class ShooterEnemy extends Enemy {
         g2.drawRect((int)(x - w/6), (int)(y - h/2), (int)(w/3), (int)h);
         g2.setColor(colorAccent);
         g2.fillOval((int)(x - 6), (int)(y - 6), 12, 12);
-
-        g2.dispose();
     }
 }

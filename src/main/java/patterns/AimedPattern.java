@@ -12,9 +12,8 @@ public class AimedPattern implements BulletPattern {
 
     @Override
     public List<Bullet> createBullets(World world, double srcX, double srcY, boolean fromPlayer) {
-        List<Player> players = world.allOf(Player.class);
-        if (players.isEmpty()) return List.of();
-        Player target = players.get(0);
+        Player target = world.player();
+        if (target == null) return List.of();
         double dx = target.getX() - srcX;
         double dy = target.getY() - srcY;
         double len = Math.sqrt(dx * dx + dy * dy) + 0.001;

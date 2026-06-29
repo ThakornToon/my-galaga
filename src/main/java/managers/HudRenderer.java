@@ -6,7 +6,6 @@ import entities.DualFighter;
 import enemies.Enemy;
 
 import java.awt.*;
-import java.util.List;
 
 public class HudRenderer {
     private final int W, H;
@@ -24,19 +23,17 @@ public class HudRenderer {
         // Score
         g2.setFont(new Font("Monospaced", Font.BOLD, 20));
         g2.setColor(new Color(0, 200, 255));
-        g2.drawString("SCORE: " + world.score, 12, 28);
+        g2.drawString("SCORE: " + world.getScore(), 12, 28);
 
         // Wave
         g2.setFont(new Font("Monospaced", Font.BOLD, 16));
         g2.setColor(new Color(200, 200, 255));
-        String waveStr = "WAVE " + world.wave;
+        String waveStr = "WAVE " + world.getWave();
         g2.drawString(waveStr, W/2 - g2.getFontMetrics().stringWidth(waveStr)/2, 24);
 
         // Player lives / power-up / shield
-        List<Player> players = world.allOf(Player.class);
-        if (!players.isEmpty()) {
-            Player p = players.get(0);
-
+        Player p = world.player();
+        if (p != null) {
             g2.setFont(new Font("Monospaced", Font.BOLD, 14));
             g2.setColor(new Color(100, 255, 180));
             String hearts = "♥ ".repeat(Math.max(0, p.getLives()));
@@ -47,8 +44,8 @@ public class HudRenderer {
             Color kpColor = new Color(255, 120, 180);
             g2.setFont(new Font("Monospaced", Font.BOLD, 12));
             g2.setColor(kpColor);
-            g2.drawString("♥ +1  " + world.killProgress + "/" + World.KILLS_PER_LIFE, 12, 66);
-            drawBuffBar(g2, world.killProgress / (double) World.KILLS_PER_LIFE, kpColor, 12, 71, 100);
+            g2.drawString("♥ +1  " + world.getKillProgress() + "/" + World.KILLS_PER_LIFE, 12, 66);
+            drawBuffBar(g2, world.getKillProgress() / (double) World.KILLS_PER_LIFE, kpColor, 12, 71, 100);
 
             // Active buff rows — each row: label + bar + 26px gap
             g2.setFont(new Font("Monospaced", Font.BOLD, 14));
@@ -93,10 +90,10 @@ public class HudRenderer {
                 buffY += 26;
             }
 
-            if (world.scoreMultiplier > 1) {
+            if (world.getScoreMultiplier() > 1) {
                 Color col = new Color(255, 100, 255);
                 g2.setColor(col);
-                g2.drawString("⬡ x" + world.scoreMultiplier + " SCORE", 12, buffY);
+                g2.drawString("⬡ x" + world.getScoreMultiplier() + " SCORE", 12, buffY);
                 drawBuffBar(g2, Math.max(0, p.getScoreMultTimer() / Player.SCORE_MULT_DURATION), col, 12, buffY + 5, 120);
                 buffY += 26;
             }
@@ -104,7 +101,7 @@ public class HudRenderer {
             buffY += 6;
 
             // Dual fighter indicator
-            int dfCount = world.allOf(DualFighter.class).size();
+            int dfCount = world.countOf(DualFighter.class);
             if (dfCount > 0) {
                 g2.setFont(new Font("Monospaced", Font.BOLD, 13));
                 g2.setColor(new Color(100, 255, 120));
@@ -123,7 +120,7 @@ public class HudRenderer {
         // Enemy count
         g2.setFont(new Font("Monospaced", Font.PLAIN, 12));
         g2.setColor(new Color(150, 150, 200));
-        g2.drawString("ENEMIES: " + world.allOf(Enemy.class).size(), W - 120, 28);
+        g2.drawString("ENEMIES: " + world.countOf(Enemy.class), W - 120, 28);
 
         g2.dispose();
     }

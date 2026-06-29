@@ -24,18 +24,6 @@ public abstract class GameObject implements Updatable, Drawable, Collidable {
     // ========== GETTERS ==========
     public double getX() { return x; }
     public double getY() { return y; }
-    public double getW() { return w; }
-    public double getH() { return h; }
-    public double getVx() { return vx; }
-    public double getVy() { return vy; }
-    public double getRotation() { return rotation; }
-
-    // ========== SETTERS ==========
-    public void setX(double x) { this.x = x; }
-    public void setY(double y) { this.y = y; }
-    public void setVx(double vx) { this.vx = vx; }
-    public void setVy(double vy) { this.vy = vy; }
-    public void setRotation(double rotation) { this.rotation = rotation; }
 
     @Override
     public Rectangle2D getBounds() {
