@@ -5,9 +5,8 @@ import java.awt.*;
 
 public class Drone extends Enemy {
     public Drone(World world, double x, double y) {
-        super(world, x, y, 28, 24, 1, 100, 2.5,
+        super(world, x, y, 28, 24, 1, 100, 3.2,
                 new Color(200, 80, 255), new Color(140, 40, 200), new Color(255, 150, 255));
-        shootCooldown = 3.2;
     }
 
     @Override

@@ -33,8 +33,14 @@ public class ShooterEnemy extends Enemy {
     @Override
     public void triggerDive() {
         if (inEntryPath) return;
+        // Already towing a captured ghost → don't initiate another steal/dive.
+        // Without this, a ShooterEnemy in CAPTURE_BOB is still in formation, so
+        // FormationManager can re-trigger it: it would fire a second beam, steal
+        // another life, and overwrite `ghost` — orphaning the first ghost (left
+        // alive on screen but un-towed and impossible to rescue).
+        if (ghost != null) return;
         Player p = findPlayer();
-        boolean playerAlive = (p != null && p.getLives() > 0);
+        boolean playerAlive = (p != null && p.getLives() > 1);
         if (world.rng().nextDouble() < 0.5 && playerAlive) {
             // Stay in place — fire tractor beam downward toward player
             inFormation = false;

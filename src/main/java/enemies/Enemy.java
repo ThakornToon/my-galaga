@@ -11,14 +11,15 @@ import java.awt.*;
 
 public abstract class Enemy extends GameObject {
     protected final Color colorPrimary, colorSecondary, colorAccent;
-    protected int hp, maxHp, scoreValue;
+    protected int hp, maxHp;
+    private int scoreValue;
     protected double formationX, formationY;
     protected boolean inFormation = true;
     protected double divePhase;
     protected double patternTimer;
     protected double shootTimer, shootCooldown;
     protected boolean invulnerable;
-    protected double invulnerableTimer;
+    private double invulnerableTimer;
     protected int wave;
     protected double speedMult = 1.0;
 
@@ -26,27 +27,27 @@ public abstract class Enemy extends GameObject {
     // Paths are walked by real arc-length distance and interpolated between
     // waypoints, so movement is frame-rate independent and the pixel speed is
     // constant — both within a path and across paths of different lengths.
-    protected static final double ENTRY_SPEED  = 400.0;
-    protected static final double SWOOP_SPEED  = 460.0;
-    protected static final double RETURN_SPEED = 380.0;
+    private static final double ENTRY_SPEED  = 400.0;
+    private static final double SWOOP_SPEED  = 460.0;
+    private static final double RETURN_SPEED = 380.0;
 
     // ── Entry path (follow-the-leader) ──────────────────────────────────────
     protected boolean inEntryPath = true;
-    protected EntryPath entryPath = null;
+    private EntryPath entryPath = null;
     // progress along entryPath as an arc-length fraction in [0,1]
-    protected double pathT = 0.0;
+    private double pathT = 0.0;
 
     // ── Swoop state (post-entry) ─────────────────────────────────────────────
-    protected boolean willSwoop   = false;
+    private boolean willSwoop   = false;
     protected boolean swoopActive = false;
-    protected EntryPath swoopPath = null;
-    protected double swoopT        = 0.0;
-    protected double swoopTargetX, swoopTargetY;
+    private EntryPath swoopPath = null;
+    private double swoopT        = 0.0;
+    private double swoopTargetX, swoopTargetY;
 
     // ── Smooth return to formation ───────────────────────────────────────────
-    protected boolean returningToFormation = false;
-    protected EntryPath returnPath = null;
-    protected double returnT        = 0.0;
+    private boolean returningToFormation = false;
+    private EntryPath returnPath = null;
+    private double returnT        = 0.0;
 
     protected Enemy(World world, double x, double y, double w, double h,
                     int hp, int scoreValue, double shootCooldown,
@@ -149,7 +150,7 @@ public abstract class Enemy extends GameObject {
     protected void onDeath() {}
 
     protected void startInvulnerability(double d) { invulnerable = true; invulnerableTimer = d; }
-    protected void tickInvulnerability(double dt) {
+    private void tickInvulnerability(double dt) {
         if (invulnerable) { invulnerableTimer -= dt; if (invulnerableTimer <= 0) invulnerable = false; }
     }
 
@@ -169,9 +170,15 @@ public abstract class Enemy extends GameObject {
         return world.player();
     }
     protected void drawGlow(Graphics2D g2) {
-        g2.setColor(new Color(colorPrimary.getRed(), colorPrimary.getGreen(),
-                colorPrimary.getBlue(), 40));
-        g2.fillOval((int)(x-w/2-4),(int)(y-h/2-4),(int)(w+8),(int)(h+8));
+        // Two-tier halo. The body is drawn opaque right after this, so only the
+        // part that extends BEYOND the body stays visible — the old +4px / a=40
+        // glow was almost entirely covered and read as nearly invisible. Reach
+        // ~10px past the body so a real glow ring shows.
+        int cr = colorPrimary.getRed(), cg = colorPrimary.getGreen(), cb = colorPrimary.getBlue();
+        g2.setColor(new Color(cr, cg, cb, 38));
+        g2.fillOval((int)(x-w/2-10),(int)(y-h/2-10),(int)(w+20),(int)(h+20));
+        g2.setColor(new Color(cr, cg, cb, 75));
+        g2.fillOval((int)(x-w/2-5),(int)(y-h/2-5),(int)(w+10),(int)(h+10));
     }
 
     // ── Main update ──────────────────────────────────────────────────────────
@@ -277,10 +284,10 @@ public abstract class Enemy extends GameObject {
         if (shootTimer >= shootCooldown) {
             shootTimer    = 0;
             shootCooldown = Math.max(0.5, shootCooldown - wave * 0.04);
-            fireDefaultPattern(player);
+            fireDefaultPattern();
         }
     }
-    protected void fireDefaultPattern(Player player) {
+    private void fireDefaultPattern() {
         firePattern(new StraightPattern(260 + wave * 8));
     }
 

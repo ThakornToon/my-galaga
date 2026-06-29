@@ -299,10 +299,9 @@ if (sleep > 0) LockSupport.parkNanos(sleep);  // ชัดเจนกว่า 
 int    score           = 0       // คะแนนสะสม (× scoreMultiplier เมื่อฆ่าศัตรู)
 int    wave            = 1       // wave ปัจจุบัน
 int    kills           = 0       // จำนวนศัตรูที่กำจัดทั้งหมด (ยิงตาย + พุ่งชนตาย) แสดงผลตอนจบเกม
+int    killProgress    = 0       // นับ kill เข้าหา bonus life (0–99, ครบ 100 → +1 ชีวิต)
 int    scoreMultiplier = 1       // ปกติ 1, เพิ่มเป็น 2 เมื่อได้ SCORE_MULT power-up
 boolean gameOver       = false   // true → เปลี่ยน screen เป็น GAME_OVER
-boolean bossDefeated   = false   // ใช้ track ว่า Boss ตายในชน/AoE
-double  totalTime      = 0       // เวลาทั้งหมดที่เล่น (seconds)
 double  formationOffset = 0      // offset ซ้าย-ขวาของ formation ทั้งหมด
 ```
 
@@ -376,10 +375,10 @@ World world       // reference กลับไปหา World
 |---|---|---|
 | Player bullet | 4 × 10 px | สีเขียวมิ้นท์ |
 | Enemy bullet | 5 × 12 px | สีแดง |
-| Special (AoE) | 16 × 16 px | สีฟ้าอมขาว (pulsing) |
+| Special (AoE) | 48 × 48 px | สีฟ้าอมขาว (pulsing) |
 
 **Special Bullet:**
-- `aoeRadius` = `world.width / 4.0` = 150 px
+- `aoeRadius` = `world.width / 3.0` = 200 px
 - `aoeDamage` = 20 (เท่ากับยิงปกติ 20 นัด)
 - หมดอายุเมื่อออกนอกจอ (margin 20px ทุกด้าน)
 
@@ -426,7 +425,7 @@ HP: 1  |  Score: 100  |  Wave: 1+  |  Shoot cooldown: dynamic
 HP: 2  |  Score: 150  |  Wave: 2+
 ```
 
-- **ไม่ยิงกระสุน** (shootCooldown = 99)
+- **ไม่ยิงกระสุน** (override `updateShooting()` เป็น no-op)
 - Formation oscillation: `cos/sin` รอบ formation slot
 - Dive:
   1. Snapshot ตำแหน่ง Player (ไม่ track หลังนี้)
@@ -495,7 +494,7 @@ HP: 1  |  Score: 250  |  Wave: 5+
 
 **สุ่ม 2 Mode เมื่อ triggerDive:**
 
-#### CAPTURE mode (50% — เฉพาะเมื่อ Player lives > 0)
+#### CAPTURE mode (50% — เฉพาะเมื่อ Player lives > 1)
 
 ใช้ **tractor beam** (ลำแสงดูด) ไม่ใช่การพุ่งชน — ShooterEnemy ลอยอยู่กับที่แล้วยิงลำแสงลงไปหา Player:
 
@@ -511,6 +510,8 @@ HP: 1  |  Score: 250  |  Wave: 5+
 - ยิงโดน ShooterEnemy ขณะ Ghost ยังอยู่ → Ghost หาย + `player.gainLife()` + `player.awardDualFighter()` (ถ้ามี wingman ครบ 2 ลำแล้ว reward จะซ่อม HP ลำที่บอบช้ำที่สุดแทน)
 
 > **กฎกันตาย (life-steal guard):** ลำแสงดูดจะ "ขโมยเลือด" ได้ก็ต่อเมื่อ Player มี `lives > 1` เท่านั้น — ถ้า Player เหลือชีวิตสุดท้าย (`lives ≤ 1`) ลำแสงจะ `startSmoothReturn()` ยกเลิก capture ทันที ไม่หักเลือด เพื่อไม่ให้การโดนดูดเป็นการฆ่าผู้เล่นทันที
+
+> **กฎกันขโมยซ้ำ (single-ghost guard):** ขณะ `CAPTURE_BOB` ตัว ShooterEnemy ยังอยู่ในฟอร์เมชัน (`inFormation = true`) จึงถูก `FormationManager` เลือกให้ดำดิ่งได้อีก — `triggerDive()` จึงเช็ค `if (ghost != null) return;` ตอนต้น เพื่อ**ไม่ให้ขโมยซ้ำ**ขณะที่ยังลาก ghost อยู่ (ไม่งั้นจะยิงลำแสงรอบสอง หักเลือดอีก แล้วเขียนทับ `ghost` จนตัวเก่าหลุดอ้างอิง — ลอยค้างในจอและกู้ไม่ได้) ตัวที่ถือ ghost จะบ็อบอยู่กับที่จนกว่าจะถูกยิงหรือถูกกู้ (ตอนนั้น `ghost` ถูกตั้งเป็น `null` แล้วจึงขโมยใหม่ได้)
 
 #### BOUNCER mode (50%)
 
@@ -538,10 +539,10 @@ maxHp = round(60 × 1.15^tier)
 
 Wave 5  (tier 0): 60 HP
 Wave 10 (tier 1): 69 HP
-Wave 15 (tier 2): 69 HP  (same tier)
-Wave 20 (tier 2): 69 HP
-Wave 25 (tier 2): 69 HP
-Wave 30 (tier 3): ~79 HP
+Wave 15 (tier 1): 69 HP  (same tier as W10)
+Wave 20 (tier 2): 79 HP
+Wave 25 (tier 2): 79 HP  (same tier)
+Wave 30 (tier 3): 91 HP
 ```
 
 > Note: Boss override `setWave()` โดยเฉพาะ ไม่ใช้ generic HP bonus (+1/10 waves)
@@ -728,7 +729,7 @@ List<Bullet> createBullets(World world, double srcX, double srcY, boolean fromPl
 **สถิติ:**
 ```
 Bullet speed: -400 px/sec (ขึ้นตรง)
-AoE radius:   150 px (= world.width / 4)
+AoE radius:   200 px (= world.width / 3)
 AoE damage:   20 ต่อ enemy ใน radius
 ```
 
@@ -933,7 +934,7 @@ count per dive = 1 + rng.nextInt(min(2, candidates.size()))
 
 ### CollisionManager
 
-ลำดับ collision check (7 categories):
+ลำดับ collision check (8 loops ใน `update()` — special bullet เป็น branch ภายใน loop แรก):
 
 | # | Source | Target | Result |
 |---|---|---|---|
@@ -945,6 +946,7 @@ count per dive = 1 + rng.nextInt(min(2, candidates.size()))
 | 6 | Enemy body | Player | half score + explosion + `p.absorbHit()` |
 | 7 | Enemy body | DualFighter | explosion + `e.destroy()` + `df.absorbHit()` |
 | 8 | PowerUp | Player | `p.applyPowerUp(type)`, +7px margin |
+| 9 | PowerUp | DualFighter | `p.applyPowerUp(type)` (แชร์ buff ให้ Player), `pu.destroy()` |
 
 > **EnergyWave** handles collision ตัวเองใน `update()` — ไม่อยู่ใน list นี้
 
@@ -1082,8 +1084,8 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 | **Power-up drop** เมื่อศัตรูตาย | **20%** | `rng.nextDouble() > 0.20` → return | `World.maybeDropPowerUp` |
 | **ชนิด Power-up** ที่สุ่มได้ | **20% ต่อชนิด** | uniform จาก 5 ชนิด (`nextInt(5)`) | `World.maybeDropPowerUp` |
 | **Swoop** หลังจบ entry path | **20%** | `nextDouble() < 0.20` ต่อศัตรู 1 ตัว | `WaveManager.spawnOne` |
-| **ShooterEnemy → CAPTURE** | **50%** | ต้อง Player lives > 0 ด้วย ไม่งั้นเป็น BOUNCER | `ShooterEnemy.triggerDive` |
-| ShooterEnemy → BOUNCER | 50% (หรือ 100% ถ้า lives = 0) | ส่วนที่เหลือ | `ShooterEnemy.triggerDive` |
+| **ShooterEnemy → CAPTURE** | **50%** | ต้อง Player lives > 1 **และยังไม่ได้ถือ ghost** (`ghost == null`) ไม่งั้นเป็น BOUNCER | `ShooterEnemy.triggerDive` |
+| ShooterEnemy → BOUNCER | 50% (หรือ 100% ถ้า lives ≤ 1) | ส่วนที่เหลือ | `ShooterEnemy.triggerDive` |
 | ทิศ Bouncer (ซ้าย/ขวา) | **50% / 50%** | `nextBoolean()` | `ShooterEnemy.startBouncer` |
 | **Boss drop Special Ammo = 1** | **90%** | `nextDouble() < 0.90` | `Boss.onDeath` |
 | Boss drop Special Ammo = 2 | **10%** | ส่วนที่เหลือ | `Boss.onDeath` |
@@ -1105,7 +1107,7 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 | **Speed: Drone + Boss** | `1.0 + 0.05·⌊(wave-1)/5⌋` | **+5% ทุก 5 wave** (W1 ×1.0, W6 ×1.05, W11 ×1.10) | `WaveManager.applySpeedMult` |
 | **Speed: ศัตรูอื่น** | `0.75 + 0.10·⌊(wave-1)/2⌋` | ฐาน **75%**, **+10% ทุก 2 wave** (W1 ×0.75, W5 ×0.95, W11 ×1.25) | `WaveManager.applySpeedMult` |
 | **HP ศัตรูทั่วไป** | `+1 ต่อ ⌊wave/10⌋` | **+1 HP ทุก 10 wave** | `Enemy.setWave` |
-| **HP Boss** | `60 · 1.15^⌊wave/10⌋` | **+15% ทบต้น ต่อ tier 10 wave** (W5=60, W10=69, W30≈79) | `Boss.setWave` |
+| **HP Boss** | `60 · 1.15^⌊wave/10⌋` | **+15% ทบต้น ต่อ tier 10 wave** (W5=60, W10=69, W20=79, W30=91) | `Boss.setWave` |
 | **จำนวนศัตรูต่อ wave** (wave ≥ 6) | `1.0 + 0.20·(wave-5)` | **+20% ต่อ wave** (W6 ×1.2, W10 ×2.0, W15 ×3.0) | `WaveManager.buildWave` |
 | **Rapid Fire cooldown** | `0.22s → 0.10s` | ยิงเร็วขึ้น ~**2.2 เท่า** | `Player.update` |
 | Boss cooldown เมื่อ HP < 50% | `−1.0s` (floor 2s) | ยิงถี่ขึ้น | `Boss.updateShooting` |
@@ -1186,7 +1188,7 @@ GAME_OVER ←── lives≤0                                ↙     ↘
 - **Docs:** sync ShooterEnemy เป็น tractor-beam capture, เพิ่มหมวดรวมความน่าจะเป็น & ตัวคูณ
 
 ### v3.0 — Special Ammo, Rendering & Scaling Overhaul
-- **Special (explosive) ammo:** ได้จาก Boss, ยิงด้วย SHIFT → AoE radius 150px damage 20
+- **Special (explosive) ammo:** ได้จาก Boss, ยิงด้วย SHIFT → AoE radius 200px damage 20
 - **BlastRing:** วงแสง visual แสดง blast radius 0.45s
 - **Active rendering rewrite:** Canvas + BufferStrategy + BufferedImage back-buffer → เร็วขึ้น 30×
 - **Sub-pixel rendering:** fractional translate ทำให้ motion smooth ไม่กระตุก
