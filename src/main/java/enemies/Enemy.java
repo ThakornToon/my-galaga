@@ -253,6 +253,19 @@ public abstract class Enemy extends GameObject {
         y = pt.y();
         vx = 0; vy = 0; // ★ คุมตำแหน่งตรงๆ ไม่ใช้ velocity ตอนเดินเส้น
 
+        // Swoop trigger at 60% of the entry path (before reaching formation slot)
+        if (willSwoop && pathT >= 0.6) {
+            willSwoop   = false;
+            inEntryPath = false;
+            swoopPath = EntryPath.buildSwoop(x, y,
+                    swoopTargetX, swoopTargetY,
+                    formationX, formationY,
+                    world.width, world.height);
+            swoopActive = true;
+            swoopT      = 0.0;
+            return;
+        }
+
         // Reached end of path — ถึงปลายเส้น (เข้าช่องแล้ว)
         if (pathT >= 1.0) {
             inEntryPath = false;
@@ -260,21 +273,6 @@ public abstract class Enemy extends GameObject {
             // No hard snap: the path already ends on the slot, and
             // moveTowardsFormation eases the enemy into its (swaying) slot —
             // teleporting by the current formation offset looked jarring.
-            // ไม่วาร์ปเข้าช่อง: เส้นจบที่ช่องอยู่แล้ว และ moveTowardsFormation
-            // จะค่อยๆ พาเข้าช่องที่กำลังส่าย (วาร์ปทันทีจะดูกระตุก)
-
-            // 20% swoop immediately after arriving (if flagged)
-            // ถ้าถูกตั้งไว้ให้พุ่งต่อทันที (ราว 20% ของตัว) → สร้างเส้น swoop
-            if (willSwoop) {
-                willSwoop = false;
-                swoopPath = EntryPath.buildSwoop(x, y,
-                        swoopTargetX, swoopTargetY,
-                        formationX, formationY,
-                        world.width, world.height);
-                swoopActive = true;
-                swoopT      = 0.0;
-                inFormation = false;
-            }
         }
     }
 
